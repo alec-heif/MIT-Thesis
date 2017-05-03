@@ -1,7 +1,6 @@
-/**
- * Created by aheifetz on 4/26/17.
- */
-class Budget (_epsilon: Double, _scale: Int) {
+package org.me.PrivateSpark
+
+class Budget (_epsilon: Double, _scale: Int) extends Serializable {
 
   private var _value = _epsilon * _scale
 
