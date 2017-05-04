@@ -30,7 +30,6 @@ class SparkLapRDD[T: ClassTag](
                             userRange: Range = range)
   : SparkLapPairRDD[K, Iterable[V]] = {
 
-    // TODO apply budget
     def g(input: T): Seq[(K, V)] = {
 
       // Returned keys must be in the input
@@ -38,17 +37,21 @@ class SparkLapRDD[T: ClassTag](
         keys.contains(input._1)
       }
 
-      // Length of returned lists must match given length
+      // Apply key filter and truncate to length
+      def result = f(input)
+        .filter(keyMatch)
+        .take(numVals)
+
+      // Also need to pad to length if necessary, so choose random k/v to pad with
       def random = new Random
       def randKey = keys(random.nextInt(keys.length))
-      def randVal = classOf[V].getConstructors.head.newInstance().asInstanceOf[V]
+      def randVal = result(random.nextInt(result.length))._2
 
-      // Apply rules
-      f(input)
-        .filter(keyMatch)
-        .padTo(numVals, (randKey, randVal))
-        .take(numVals)
+      // Apply padding and return
+      result.padTo(numVals, (randKey, randVal))
     }
+
+    // TODO apply budget
     new SparkLapPairRDD(delegate.flatMap(g).groupByKey(), budget, userRange)
   }
 

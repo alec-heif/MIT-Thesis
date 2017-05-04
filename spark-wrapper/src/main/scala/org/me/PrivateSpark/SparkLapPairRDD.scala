@@ -4,9 +4,6 @@ import org.apache.spark.rdd.RDD
 
 import scala.reflect.ClassTag
 
-/**
- * Created by aheifetz on 5/3/17.
- */
 class SparkLapPairRDD[K: ClassTag, V: ClassTag](
                                                  _delegate: RDD[(K, V)],
                                                  _budget: Budget,
