@@ -1,0 +1,21 @@
+Some tasks take substantially longer than others
+  Maybe code gets stuck due to deadlock?
+    Important to always use threadsafe data structures!
+    ConcurrentHashMap, etc
+  Enabling spark speculation can sometimes also help to prevent deadlock
+    Lets you provide interval, multiplier, quantile
+      Kills tasks that are taking too long and restarts them
+      Settings are to configure which get killed and which don't
+Smaller executors can be faster than bigger executors
+  E.g. executor size of 10GB
+    Garbage collection takes a lot longer on large executors
+    OOM errors should be the forcing function to make larger executors
+      Only use more cores per executor if you are observing OOM errors
+Often helps to view the job in spark console to learn about what it's actually doing
+  Number of cores per executor should be factor of number of cores in a machine
+  Too many tasks can be bad because coordination will start to dominate your computation
+Sometimes map partitions can be useful if a heavy function is being used
+  Runs the heavy part once per machine rather than once per element of RDD
+If a function is used twice, caching it can be beneficial
+Minimizing number of unique map functions can be faster
+  Minimal number of actions and transformations

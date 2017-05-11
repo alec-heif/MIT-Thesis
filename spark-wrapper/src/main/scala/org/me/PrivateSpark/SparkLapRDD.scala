@@ -1,9 +1,10 @@
 package org.me.PrivateSpark
 
+import java.lang.reflect.Modifier
+
 import org.apache.spark.rdd.RDD
 
 import scala.reflect.ClassTag
-import scala.util.Random
 
 class SparkLapRDD[T: ClassTag](
                                 _delegate: RDD[T],
@@ -15,44 +16,67 @@ class SparkLapRDD[T: ClassTag](
   def budget = _budget
   def range = _range
 
+  def enforcePurity[T: ClassTag, U: ClassTag](f : T => U): Unit = {
+    var foo : Class[_] = f.getClass
+    while (foo != null) {
+      foo.getDeclaredFields.foreach(field => {
+        println(field)
+        field.setAccessible(true)
+        if (!Modifier.isFinal(field.getModifiers)) {
+          def fieldName = field.getName
+          throw new IllegalArgumentException("Field references non-final parameter " + fieldName)
+        }
+      })
+      foo = foo.getEnclosingClass()
+    }
+  }
+
   def map[U: ClassTag](f: T => U, userRange: Range = range): SparkLapRDD[U] = {
+    enforcePurity(f)
     new SparkLapRDD(delegate.map(f), budget, userRange)
   }
 
   def filter(f: T => Boolean): SparkLapRDD[T] = {
+    enforcePurity(f)
     new SparkLapRDD(delegate.filter(f), budget, range)
   }
 
   def groupBy[K: ClassTag, V: ClassTag](
                             f: T => Seq[(K, V)],
-                            keys: Seq[K],
-                            numVals: Int,
                             userRange: Range = range)
   : SparkLapPairRDD[K, Iterable[V]] = {
 
-    def g(input: T): Seq[(K, V)] = {
-
-      // Returned keys must be in the input
-      def keyMatch(input: (K, V)): Boolean = {
-        keys.contains(input._1)
-      }
-
-      // Apply key filter and truncate to length
-      def result = f(input)
-        .filter(keyMatch)
-        .take(numVals)
-
-      // Also need to pad to length if necessary, so choose random k/v to pad with
-      def random = new Random
-      def randKey = keys(random.nextInt(keys.length))
-      def randVal = result(random.nextInt(result.length))._2
-
-      // Apply padding and return
-      result.padTo(numVals, (randKey, randVal))
+    // TODO incorporate this logic into reduction phase
+    /*
+  def g(input: T): Seq[(K, V)] = {
+    // Returned keys must be in the input
+    def keyMatch(input: (K, V)): Boolean = {
+      keys.contains(input._1)
     }
 
+    // Apply key filter and truncate to length
+    def result = f(input)
+      .filter(keyMatch)
+      .take(numVals)
+
+    if (result.isEmpty) {
+      return Seq.empty[(K,V)]
+    }
+
+    result.foreach(println)
+
+    // Also need to pad to length if necessary, so choose random k/v to pad with
+    def random = new Random
+    def randKey = keys(random.nextInt(keys.length))
+    def randVal = result(random.nextInt(result.length))._2
+
+    // Apply padding and return
+    result.padTo(numVals, (randKey, randVal))
+    }
+    */
     // TODO apply budget
-    new SparkLapPairRDD(delegate.flatMap(g).groupByKey(), budget, userRange)
+    enforcePurity(f)
+    new SparkLapPairRDD(delegate.flatMap(f).groupByKey(), budget, userRange)
   }
 
   // TODO remove

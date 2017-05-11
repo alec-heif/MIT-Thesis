@@ -17,4 +17,6 @@ class SparkLapPairRDD[K: ClassTag, V: ClassTag](
   def mapValues[U: ClassTag](f: V => U, userRange: Range = range): SparkLapPairRDD[K, U] = {
     new SparkLapPairRDD(delegate.mapValues(f), budget, userRange)
   }
+
+  def collect = delegate.collect
 }
