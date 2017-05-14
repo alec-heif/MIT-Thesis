@@ -1,10 +1,14 @@
 package org.me.PrivateSpark
 
-object Fart {
-  var value = 0
-}
+import scala.collection.mutable.ListBuffer
 
-object DemoSparkJob {
+object Companion {
+  var classCount = 0;
+}
+object DemoSparkJob extends Serializable {
+  val buf = ListBuffer.empty[String]
+
+  var instanceCount = 0;
   def main(args: Array[String]) {
     var bottomCount = 0
     val logFile = "data.txt" // Should be some file on your system
@@ -13,14 +17,20 @@ object DemoSparkJob {
 
     val rdd = sc.getLapRDD(logFile)
 
-    def pureMap(x : Any) = {
-      Fart.value = 5
-      increment()
-      x
+    var localCount = 0;
+
+    val cleanMap = {
+      (x : String) => {
+        buf += x
+        x
+      }
     }
 
-    def increment() = {
-      bottomCount += 1
+    var dirtyMap = (x : String) => {
+      localCount += 1
+      instanceCount += 1
+      Companion.classCount += 1
+      x
     }
 
     def split(s : String) : Seq[(String, (Int, Int))] = {
@@ -30,10 +40,10 @@ object DemoSparkJob {
       List((name, info))
     }
 
-    def list = rdd.map(pureMap)
+    def list = rdd.map(cleanMap)
     list.collect.iterator.foreach(println)
     println(bottomCount)
-    println(Fart.value)
+    buf.foreach(println)
 
     sc.stop()
   }

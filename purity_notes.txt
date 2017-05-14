@@ -1,8 +1,9 @@
 A requirement of SparkLAP is that all functions passed in by the user are pure. We further break down purity into two dimensions:
   Output purity implies that the function has no side effects and has no effect on the world beyond returning the value specified.
     We enforce this through the use of a SecurityManager that blocks access to any persistent storage from within the user function
-    (saveToFile, etc) as well as any printing or other form of output.
+    (saveToFile, etc) as well as any printing or other form of output. We also enforce this through the use of a Spore combined with reflection
+    done at runtime which ensures that no additional fields or classes are brought in to the function.
   Input purity implies that the result of the function is derived solely from the input and not from any other variable.
-    We enforce this also through the security manager (preventing reading from local files) and through an "enforcePurity" function that we provide,
-    which ensures that any variables reachable from the passed in function are final, thus also preventing any output through mutation of those.
-
+    We enforce this also through the security manager (preventing reading from local files) and through the use of Spores which ensure that
+    no variables besides the input are accessible unless explicitly declared, as the code will otherwise not compile. We then inspect the 
+    passed in Spore at runtime to validate that this is actually the case.

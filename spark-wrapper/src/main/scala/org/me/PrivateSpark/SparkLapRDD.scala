@@ -1,6 +1,6 @@
 package org.me.PrivateSpark
 
-import java.lang.reflect.Modifier
+import java.lang.reflect.{Method, Modifier}
 
 import org.apache.spark.rdd.RDD
 
@@ -16,8 +16,9 @@ class SparkLapRDD[T: ClassTag](
   def budget = _budget
   def range = _range
 
-  def enforcePurity[T: ClassTag, U: ClassTag](f : T => U): Unit = {
+  def enforcePurity[T: ClassTag, U: ClassTag](f : T => U): (T => U) = {
     var foo : Class[_] = f.getClass
+    // Purge things accessible by enclosure
     while (foo != null) {
       foo.getDeclaredFields.foreach(field => {
         println(field)
@@ -29,11 +30,28 @@ class SparkLapRDD[T: ClassTag](
       })
       foo = foo.getEnclosingClass()
     }
+    // Purge things accessible by inheritance
+    foo = f.getClass
+    while (foo != null) {
+      foo.getDeclaredFields.foreach(field => {
+        println(field)
+        field.setAccessible(true)
+        if (!Modifier.isFinal(field.getModifiers)) {
+          def fieldName = field.getName
+          throw new IllegalArgumentException("Field references non-final parameter " + fieldName)
+        }
+      })
+      foo = foo.getSuperclass()
+    }
+    f
   }
 
+  def enclose[T, U](enclosed: T)(func: T => U) : U = func(enclosed)
+
   def map[U: ClassTag](f: T => U, userRange: Range = range): SparkLapRDD[U] = {
-    enforcePurity(f)
-    new SparkLapRDD(delegate.map(f), budget, userRange)
+    val g = enforcePurity(f)
+    // Force eager evaluation
+    new SparkLapRDD(delegate.map(g), budget, userRange)
   }
 
   def filter(f: T => Boolean): SparkLapRDD[T] = {
