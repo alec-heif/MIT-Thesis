@@ -7,6 +7,7 @@ import scala.reflect.{ClassTag, classTag}
 trait SparkLapPairRDD[K, V] extends Serializable {
   def mapValues[T : ClassTag](f : V => T, ranges : Map[K, Range]) : SparkLapPairRDD[K, T]
   def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)]
+  def cache() : Unit
 }
 
 object SparkLapPairRDD {
@@ -46,6 +47,10 @@ class UnreducibleSparkLapPairRDD[K, V](
   override def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)] = {
     throw new UnsupportedOperationException("Not permitted!")
   }
+
+  override def cache() : Unit = {
+    delegate.cache()
+  }
 }
 
 class ReducibleSparkLapPairRDD[K, V](
@@ -70,6 +75,10 @@ class ReducibleSparkLapPairRDD[K, V](
     }
     def scale = 1 / 0.1
     func.reduceByKey(_ + _).collect().map(noise)
+  }
+
+  override def cache() : Unit = {
+    delegate.cache()
   }
 }
 

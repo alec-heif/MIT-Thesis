@@ -24,7 +24,9 @@ object DemoSparkJob extends Serializable {
     ranges += ("bar" -> new Range(0, 10))
     val doubledRdd = groupedRdd.mapValues(getPrice, ranges)
 
-    doubledRdd.kCount().foreach(println)
+    for (i <- 1 to 20) {
+      doubledRdd.kCount().foreach(println)
+    }
 
     sc.stop()
   }
