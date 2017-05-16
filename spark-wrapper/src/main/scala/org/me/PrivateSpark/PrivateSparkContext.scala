@@ -16,9 +16,9 @@ class PrivateSparkContext (name : String) {
     System.err.println("Got to creating RDD");
     if (budget.hasRemaining) {
       budget.charge(budget.epsilon)
-      new SparkLapRDD(ctx.textFile(path), budget)
+      SparkLapRDD.create(ctx.textFile(path), budget, new Range())
     } else {
-      new SparkLapRDD(ctx.emptyRDD, budget)
+      SparkLapRDD.create(ctx.emptyRDD, budget, new Range())
     }
   }
 

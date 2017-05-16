@@ -1,22 +1,71 @@
 package org.me.PrivateSpark
 
-import org.apache.spark.rdd.RDD
+import org.apache.spark.rdd.{PairRDDFunctions, RDD}
+import org.apache.spark.SparkContext._
 
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
-class SparkLapPairRDD[K: ClassTag, V: ClassTag](
-                                                 _delegate: RDD[(K, V)],
-                                                 _budget: Budget,
-                                                 _range: Range
-                                                 ) extends Serializable {
+trait SparkLapPairRDD[K, V] extends Serializable {
+  def mapValues[T : ClassTag](f : V => T, ranges : Map[K, Range]) : SparkLapPairRDD[K, T]
+  def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)]
+}
 
-  private val delegate = _delegate
-  def budget = _budget
-  def range = _range
+object SparkLapPairRDD {
+  def create[K, V : ClassTag]
+  (delegate : RDD[(K, V)], info : QueryInfo[K])
+  (implicit tag : ClassTag[V])
+  : SparkLapPairRDD[K, V] = {
+    // Need to enforce every potentially reducible creation
+    val matcher = Utils.keyMatch(info.ranges.keySet) _
+    val enforcer = Utils.enforce(info.ranges) _
+    delegate match {
+      case reducible: RDD[(K, Double)@unchecked] if tag == classTag[Double] => {
+        val _delegate = delegate.asInstanceOf[RDD[(K, Double)]]
+        val result = new ReducibleSparkLapPairRDD[K, Double](_delegate.filter(matcher).map(enforcer), info)
+        result.asInstanceOf[SparkLapPairRDD[K, V]]
+      }
+      case _ => new UnreducibleSparkLapPairRDD[K, V](delegate, info)
+    }
+  }
+}
 
-  def mapValues[U: ClassTag](f: V => U, userRange: Range = range): SparkLapPairRDD[K, U] = {
-    new SparkLapPairRDD(delegate.mapValues(f), budget, userRange)
+class UnreducibleSparkLapPairRDD[K, V](
+                                        delegate : RDD[(K, V)]
+                                        , info : QueryInfo[K]
+                                        ) extends SparkLapPairRDD[K, V] {
+
+  override def mapValues[T](f : V => T, ranges : Map[K, Range])(implicit tag : ClassTag[T]): SparkLapPairRDD[K, T] = {
+    val g = Cleaner.enforcePurity(f)
+
+    def h(f : V => T)(input : (K, V)) : (K, T) = {
+      (input._1, f(input._2))
+    }
+
+    SparkLapPairRDD.create(delegate.map(h(g)), info.set(ranges))
   }
 
-  def collect = delegate.collect
+  override def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)] = {
+    throw new UnsupportedOperationException("Not permitted!")
+  }
 }
+
+class ReducibleSparkLapPairRDD[K, V](
+                                   delegate : RDD[(K, V)]
+                                   , info : QueryInfo[K]
+                                   ) extends SparkLapPairRDD[K, V] {
+
+  override def mapValues[T](f : V => T, ranges : Map[K, Range])(implicit tag : ClassTag[T]): SparkLapPairRDD[K, T] = {
+    val g = Cleaner.enforcePurity(f)
+    def h(f : V => T)(input : (K, V)) : (K, T) = {
+      (input._1, f(input._2))
+    }
+    SparkLapPairRDD.create(delegate.map(h(g)), info.set(ranges))
+  }
+
+  def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)] = {
+    def _delegate = delegate.asInstanceOf[RDD[(K, Double)]]
+    def func = new PairRDDFunctions(_delegate)
+    func.reduceByKey(_ + _).collect()
+  }
+}
+

@@ -1,102 +1,119 @@
 package org.me.PrivateSpark
 
-import java.lang.reflect.{Method, Modifier}
-
+import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
 
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
-class SparkLapRDD[T: ClassTag](
-                                _delegate: RDD[T],
-                                _budget: Budget,
-                                _range: Range = new Range()
-                                ) extends Serializable {
+trait SparkLapRDD[T] extends Serializable {
 
-  private val delegate = _delegate
-  def budget = _budget
-  def range = _range
+  def map[U : ClassTag](f : T => U, range : Range = Range.default()) : SparkLapRDD[U]
+  def filter(f : T => Boolean)(implicit tag : ClassTag[T]): SparkLapRDD[T]
+  def groupBy[K, V : ClassTag] (
+                                 f : T => Seq[(K, V)]
+                                 , maxOutputs : Int
+                                 , ranges : Map[K, Range]
+                                 ) : SparkLapPairRDD[K, V]
 
-  def enforcePurity[T: ClassTag, U: ClassTag](f : T => U): (T => U) = {
-    var foo : Class[_] = f.getClass
-    // Purge things accessible by enclosure
-    while (foo != null) {
-      foo.getDeclaredFields.foreach(field => {
-        println(field)
-        field.setAccessible(true)
-        if (!Modifier.isFinal(field.getModifiers)) {
-          def fieldName = field.getName
-          throw new IllegalArgumentException("Field references non-final parameter " + fieldName)
-        }
-      })
-      foo = foo.getEnclosingClass()
+  def count() : Double
+  def max() : Double
+//  def sum() : Double
+//  def avg() : Double
+//  def min() : Double
+//  def max() : Double
+//  def median() : Double
+
+}
+
+object SparkLapRDD {
+
+  def create[T : ClassTag](delegate : RDD[T], budget : Budget, range : Range)(implicit tag : ClassTag[T]) : SparkLapRDD[T] = {
+    val enforcer = Utils.enforce(range) _
+    delegate match {
+      case reducible : RDD[Double @unchecked] if tag == classTag[Double] => {
+        val _delegate = delegate.asInstanceOf[RDD[Double]]
+        val result = new ReducibleSparkLapRDD[Double](_delegate.map(enforcer), budget, range)
+        result.asInstanceOf[SparkLapRDD[T]]
+      }
+      case _ => new UnreducibleSparkLapRDD[T](delegate, budget, range)
     }
-    // Purge things accessible by inheritance
-    foo = f.getClass
-    while (foo != null) {
-      foo.getDeclaredFields.foreach(field => {
-        println(field)
-        field.setAccessible(true)
-        if (!Modifier.isFinal(field.getModifiers)) {
-          def fieldName = field.getName
-          throw new IllegalArgumentException("Field references non-final parameter " + fieldName)
-        }
-      })
-      foo = foo.getSuperclass()
-    }
-    f
+  }
+}
+
+class UnreducibleSparkLapRDD[T](
+                                delegate: RDD[T],
+                                budget: Budget,
+                                range : Range
+                                ) extends SparkLapRDD[T] {
+
+  override def map[U : ClassTag](f: T => U, range : Range = range) : SparkLapRDD[U] = {
+    val g = Cleaner.enforcePurity(f)
+    SparkLapRDD.create(delegate.map(g), budget, range)
   }
 
-  def enclose[T, U](enclosed: T)(func: T => U) : U = func(enclosed)
-
-  def map[U: ClassTag](f: T => U, userRange: Range = range): SparkLapRDD[U] = {
-    val g = enforcePurity(f)
-    // Force eager evaluation
-    new SparkLapRDD(delegate.map(g), budget, userRange)
+  override def filter(f: T => Boolean)(implicit tag : ClassTag[T]): SparkLapRDD[T] = {
+    val g = Cleaner.enforcePurity(f)
+    SparkLapRDD.create(delegate.filter(g), budget, range)
   }
 
-  def filter(f: T => Boolean): SparkLapRDD[T] = {
-    enforcePurity(f)
-    new SparkLapRDD(delegate.filter(f), budget, range)
+  override def groupBy[K, V : ClassTag](
+                              grouper : T => Seq[(K, V)]
+                              , maxOutputs : Int
+                              , ranges : Map[K, Range]
+                              ) : SparkLapPairRDD[K, V] = {
+    val g = Cleaner.enforcePurity(grouper)
+
+    val info = new QueryInfo[K]().set(maxOutputs)
+    val h = Utils.trim(g, info.outputs) _
+
+    SparkLapPairRDD.create(delegate.flatMap(h), info)
   }
 
-  def groupBy[K: ClassTag, V: ClassTag](
-                            f: T => Seq[(K, V)],
-                            userRange: Range = range)
-  : SparkLapPairRDD[K, Iterable[V]] = {
-
-    // TODO incorporate this logic into reduction phase
-    /*
-  def g(input: T): Seq[(K, V)] = {
-    // Returned keys must be in the input
-    def keyMatch(input: (K, V)): Boolean = {
-      keys.contains(input._1)
-    }
-
-    // Apply key filter and truncate to length
-    def result = f(input)
-      .filter(keyMatch)
-      .take(numVals)
-
-    if (result.isEmpty) {
-      return Seq.empty[(K,V)]
-    }
-
-    result.foreach(println)
-
-    // Also need to pad to length if necessary, so choose random k/v to pad with
-    def random = new Random
-    def randKey = keys(random.nextInt(keys.length))
-    def randVal = result(random.nextInt(result.length))._2
-
-    // Apply padding and return
-    result.padTo(numVals, (randKey, randVal))
-    }
-    */
-    // TODO apply budget
-    enforcePurity(f)
-    new SparkLapPairRDD(delegate.flatMap(f).groupByKey(), budget, userRange)
+  override def count() : Double = {
+    throw new UnsupportedOperationException("Not permitted!")
   }
 
-  // TODO remove
-  def collect = delegate.collect
+  override def max() : Double = {
+    throw new UnsupportedOperationException("Not permitted!")
+  }
+}
+
+// T must be a double!
+class ReducibleSparkLapRDD[T](
+                                 delegate: RDD[T],
+                                 budget: Budget,
+                                 range: Range
+                                 ) extends SparkLapRDD[T] {
+
+  override def map[U : ClassTag](f: T => U, range : Range = range) : SparkLapRDD[U] = {
+    val g = Cleaner.enforcePurity(f)
+    SparkLapRDD.create(delegate.map(g), budget, range)
+  }
+
+  override def filter(f: T => Boolean)(implicit tag : ClassTag[T]): SparkLapRDD[T] = {
+    val g = Cleaner.enforcePurity(f)
+    SparkLapRDD.create(delegate.filter(g), budget, range)
+  }
+
+  override def groupBy[K, V : ClassTag](
+                                         grouper : (T) => Seq[(K, V)]
+                                         , maxOutputs : Int
+                                         , ranges : Map[K, Range]
+                                         ) : SparkLapPairRDD[K, V] = {
+    val g = Cleaner.enforcePurity(grouper)
+
+    val info = QueryInfo.default[K]().set(maxOutputs)
+    val h = Utils.trim(g, info.outputs) _
+
+    SparkLapPairRDD.create[K, V](delegate.flatMap(h), info)
+  }
+
+  override def count() : Double = {
+    delegate.count()
+  }
+
+  override def max() : Double = {
+    val _delegate = delegate.asInstanceOf[RDD[Double]]
+    _delegate.max()
+  }
 }
