@@ -1,7 +1,6 @@
 package org.me.PrivateSpark
 
 import org.apache.spark.rdd.{PairRDDFunctions, RDD}
-import org.apache.spark.SparkContext._
 
 import scala.reflect.{ClassTag, classTag}
 
@@ -66,7 +65,11 @@ class ReducibleSparkLapPairRDD[K, V](
     def _delegate = delegate.asInstanceOf[RDD[(K, Double)]]
     def countableDelegate = _delegate.mapValues(x => 1.0)
     def func = new PairRDDFunctions(countableDelegate)
-    func.reduceByKey(_ + _).collect()
+    def noise(input : (K, Double)) : (K, Double) = {
+      (input._1, input._2 + SparkLaplace.draw(scale))
+    }
+    def scale = 1 / 0.1
+    func.reduceByKey(_ + _).collect().map(noise)
   }
 }
 
