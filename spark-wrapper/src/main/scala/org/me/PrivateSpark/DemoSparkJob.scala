@@ -9,9 +9,22 @@ object DemoSparkJob extends Serializable {
 
     val rdd = sc.getLapRDD(logFile)
 
-    val basic = rdd.map(x => x.split(", ")(1).toDouble)
+    def grouper(input : String) : Seq[(String, Seq[String])] = {
+      def split = input.split(", ")
+      Seq((split(1), split.toSeq))
+    }
 
-    println(basic.max())
+    def getPrice(input : Seq[String]) : Double = {
+      input(3).toDouble
+    }
+
+    val groupedRdd = rdd.groupBy(grouper, 1, Map.empty[String, Range])
+    var ranges = Map.empty[String, Range]
+    ranges += ("foo" -> new Range(0, 5))
+    ranges += ("bar" -> new Range(0, 10))
+    val doubledRdd = groupedRdd.mapValues(getPrice, ranges)
+
+    doubledRdd.kCount().foreach(println)
 
     sc.stop()
   }

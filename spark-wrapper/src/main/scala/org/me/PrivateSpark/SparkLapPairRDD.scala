@@ -64,7 +64,8 @@ class ReducibleSparkLapPairRDD[K, V](
 
   def kCount()(implicit tag : ClassTag[K]) : Seq[(K, Double)] = {
     def _delegate = delegate.asInstanceOf[RDD[(K, Double)]]
-    def func = new PairRDDFunctions(_delegate)
+    def countableDelegate = _delegate.mapValues(x => 1.0)
+    def func = new PairRDDFunctions(countableDelegate)
     func.reduceByKey(_ + _).collect()
   }
 }

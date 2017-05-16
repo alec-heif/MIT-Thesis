@@ -3,7 +3,7 @@ package org.me.PrivateSpark
 final class QueryInfo[K] (
                      val outputs: Int = 1
                      , val ranges : Map[K, Range] = Map.empty[K, Range]
-                     ) {
+                     ) extends Serializable {
   def set(_ranges : Map[K, Range]) : QueryInfo[K] = {
     new QueryInfo(outputs, _ranges)
   }
