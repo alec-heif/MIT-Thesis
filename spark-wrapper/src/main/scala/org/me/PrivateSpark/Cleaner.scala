@@ -9,7 +9,6 @@ object Cleaner {
     // Purge things accessible by enclosure
     while (foo != null) {
       foo.getDeclaredFields.foreach(field => {
-        println(field)
         field.setAccessible(true)
         if (!Modifier.isFinal(field.getModifiers)) {
           def fieldName = field.getName
@@ -22,7 +21,6 @@ object Cleaner {
     foo = f.getClass
     while (foo != null) {
       foo.getDeclaredFields.foreach(field => {
-        println(field)
         field.setAccessible(true)
         if (!Modifier.isFinal(field.getModifiers)) {
           def fieldName = field.getName

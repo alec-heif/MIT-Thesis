@@ -5,6 +5,13 @@ class Budget (_epsilon: Double, _scale: Int) extends Serializable {
   private var _value = _epsilon * _scale
 
   def epsilon = _epsilon
-  def hasRemaining : Boolean = { _value > 0 }
-  def charge(cost : Double) : Unit = { if (cost > 0) _value -= cost }
+  def canCharge(input : Double) : Boolean = { _value >= input }
+  def charge(cost : Double) : Boolean = {
+    if (canCharge(cost)) {
+      _value -= cost
+      true
+    } else {
+      false
+    }
+  }
 }

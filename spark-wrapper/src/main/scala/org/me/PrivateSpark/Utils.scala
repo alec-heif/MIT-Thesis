@@ -23,4 +23,8 @@ object Utils {
     keys.contains(input._1)
   }
 
+  def noise[K] (scale : Double) (input : (K, Double)) : (K, Double) = {
+    (input._1, input._2 + SparkLaplace.draw(scale))
+  }
+
 }
