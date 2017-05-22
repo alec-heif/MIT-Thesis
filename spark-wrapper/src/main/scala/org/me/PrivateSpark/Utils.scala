@@ -11,11 +11,11 @@ object Utils {
 
   }
 
-  def enforce(range : Range) (input : Double) : Double = {
+  def enforce(range : api.Range) (input : Double) : Double = {
     range.enforce(input)
   }
 
-  def enforce[K] (ranges : Map[K, Range]) (input : (K, Double)) : (K, Double) = {
+  def enforce[K] (ranges : Map[K, api.Range]) (input : (K, Double)) : (K, Double) = {
     (input._1, enforce(ranges(input._1))(input._2))
   }
 
@@ -24,7 +24,12 @@ object Utils {
   }
 
   def noise[K] (scale : Double) (input : (K, Double)) : (K, Double) = {
-    (input._1, input._2 + SparkLaplace.draw(scale))
+    (input._1, input._2 + Laplace.draw(scale))
+  }
+
+  def noisify(trueValue: Double, sensitivity : Double, budget : Budget) : Double = {
+    def scale = sensitivity / budget.epsilon
+    trueValue + Laplace.draw(scale)
   }
 
 }

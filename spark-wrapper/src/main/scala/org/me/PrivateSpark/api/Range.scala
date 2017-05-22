@@ -1,10 +1,7 @@
-package org.me.PrivateSpark
+package org.me.PrivateSpark.api
 
 import scala.util.Random
 
-/**
- * Created by aheifetz on 5/3/17.
- */
 class Range(_min: Double = Double.MinValue, _max: Double = Double.MaxValue) extends Serializable {
   val min = _min
   val max = _max
@@ -16,6 +13,7 @@ class Range(_min: Double = Double.MinValue, _max: Double = Double.MaxValue) exte
 
   def enforce(x : Double) : Double = {
     if (x < min || x > max) {
+      // println("ENFORCING! " + x)
       random()
     } else {
       x
@@ -23,8 +21,3 @@ class Range(_min: Double = Double.MinValue, _max: Double = Double.MaxValue) exte
   }
 }
 
-object Range {
-  def default() : Range = {
-    new Range()
-  }
-}

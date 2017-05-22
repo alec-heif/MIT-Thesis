@@ -3,9 +3,9 @@ package org.me.PrivateSpark
 final class QueryInfo[K] (
                            val keys : Seq[K]
                            , val outputs: Int = 1
-                           , val ranges : Map[K, Range] = Map.empty[K, Range]
+                           , val ranges : Map[K, api.Range] = Map.empty[K, api.Range]
                            ) extends Serializable {
-  def set(_ranges : Map[K, Range]) : QueryInfo[K] = {
+  def set(_ranges : Map[K, api.Range]) : QueryInfo[K] = {
     new QueryInfo(keys, outputs, _ranges)
   }
 
@@ -13,7 +13,7 @@ final class QueryInfo[K] (
     new QueryInfo(keys, _outputsPerInput, ranges)
   }
 
-  def add(key : K, range : Range) : QueryInfo[K] = {
+  def add(key : K, range : api.Range) : QueryInfo[K] = {
     set(ranges + (key -> range))
   }
 
@@ -22,8 +22,3 @@ final class QueryInfo[K] (
   }
 }
 
-object QueryInfo {
-  def default[K](keys : Seq[K]) : QueryInfo[K] = {
-    new QueryInfo[K](keys)
-  }
-}

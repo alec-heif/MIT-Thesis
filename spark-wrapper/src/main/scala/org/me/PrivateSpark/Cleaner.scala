@@ -5,6 +5,7 @@ import java.lang.reflect.{Modifier}
 object Cleaner {
 
   def enforcePurity[T, U](f : T => U): ((T) => U) = {
+    /* Temporarily disabled for demo
     var foo : Class[_] = f.getClass
     // Purge things accessible by enclosure
     while (foo != null) {
@@ -29,6 +30,7 @@ object Cleaner {
       })
       foo = foo.getSuperclass()
     }
+    */
     f
   }
 
