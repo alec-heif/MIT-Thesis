@@ -12,6 +12,8 @@ object Laplace extends Serializable {
     enabled = _enabled
   }
 
+  def getEnabled = enabled
+
   def draw(scale : Double) : Double = {
     val u = rand.nextDouble()
     if (enabled) {
