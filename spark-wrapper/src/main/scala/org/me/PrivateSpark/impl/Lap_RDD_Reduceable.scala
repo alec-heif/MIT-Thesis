@@ -84,32 +84,4 @@ class Lap_RDD_Reduceable[T](
       throw new IllegalStateException("Privacy budget exceeded!")
     }
   }
-
-  override def min() : Double = {
-    if (budget.charge(budget.epsilon)) {
-      def sensitivity = range.width
-      Utils.noisify(doubleDelegate.min(), sensitivity, budget)
-    } else {
-      throw new IllegalStateException("Privacy budget exceeded!")
-    }
-  }
-
-  override def max() : Double = {
-    if (budget.charge(budget.epsilon)) {
-      def sensitivity = range.width
-      Utils.noisify(doubleDelegate.max(), sensitivity, budget)
-    } else {
-      throw new IllegalStateException("Privacy budget exceeded!")
-    }
-  }
-
-  override def median() : Double = {
-    if (budget.charge(budget.epsilon)) {
-      def sensitivity = range.width
-      // TODO
-      0.0
-    } else {
-      throw new IllegalStateException("Privacy budget exceeded!")
-    }
-  }
 }

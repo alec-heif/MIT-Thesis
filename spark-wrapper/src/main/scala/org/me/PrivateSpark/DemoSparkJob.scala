@@ -1,10 +1,24 @@
 package org.me.PrivateSpark
 
-import org.me.PrivateSpark.api.{Lap_RDD, PrivateSparkContext, Range}
+import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 
 object DemoSparkJob extends Serializable {
 
-  def main(args: Array[String]) {
+  def main(args: Array[String]): Unit = {
+    start_sar()
+  }
+
+  def start_sar(): Unit = {
+    println("\nStarting SparkSAR!" + "\n")
+    val logFile = "health_data.csv"
+    val sc = new PrivateSparkContext("Simple App")
+
+    def rdd = sc.getSarRDD(logFile)
+
+    run_sar(rdd)
+  }
+
+  def start_lap() {
     println("\nStarting SparkLap!" + "\n")
 
     val logFile = "health_data.csv" // Should be some file on your system
@@ -13,26 +27,43 @@ object DemoSparkJob extends Serializable {
     def rdd = sc.getLapRDD(logFile)
 
     println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
-    run(rdd)
+    run_lap(rdd)
 
     println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
     // DEMO: this line disables privacy enforcement!
     Laplace.setEnabled(false)
-    run(rdd)
+    run_lap(rdd)
 
     sc.stop()
   }
 
-  def run(rdd : Lap_RDD[String]) : Unit = {
+  def run_sar(rdd: SAR_RDD[String]) : Unit = {
+    def split_rdd = rdd.map( line => {
+      def row = line.split(',')
+      def cleaned_row = row.map(col => col.toLowerCase().trim())
+      cleaned_row
+    })
+//    def heroin_deaths = split_rdd.filter(x => x(cols("heroin")).equals("y"))
+    def heroin_deaths = split_rdd
+    def heroin_ages = heroin_deaths.map(get_age)
+//    def reduced_age = heroin_ages.reduce((left, right) => {
+//      math.max(left, right)
+//    })
+    def median_age = heroin_ages.median()
+    println("Median age of heroin death: " + median_age + "\n")
 
-//    demo_count(rdd)
+  }
+
+  def run_lap(rdd : Lap_RDD[String]) : Unit = {
+
+    demo_count(rdd)
 
     def split = split_rdd(rdd)
     split.cache()
 
-//    demo_map_filter(split)
+    demo_map_filter(split)
 
-    demo_adversary_basic(split)
+//    demo_adversary_basic(split)
 
 //    demo_adversary_clever(split)
 

@@ -70,14 +70,5 @@ class Lap_RDD_NonReduceable[T](
   override def avg() : Double = {
     throw new UnsupportedOperationException("Not permitted!")
   }
-  override def max() : Double = {
-    throw new UnsupportedOperationException("Not permitted!")
-  }
-  override def min() : Double = {
-    throw new UnsupportedOperationException("Not permitted!")
-  }
-  override def median() : Double = {
-    throw new UnsupportedOperationException("Not permitted!")
-  }
 }
 
