@@ -5,12 +5,12 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    start_sar()
+    average_netflix_rating()
   }
 
   def start_sar(): Unit = {
     println("\nStarting SparkSAR!" + "\n")
-    val logFile = "health_data.csv"
+    val logFile = "file:///home/spark-user/thesis_repo/health_data.csv"
     val sc = new PrivateSparkContext("Simple App")
 
     def rdd = sc.getSarRDD(logFile)
@@ -35,6 +35,16 @@ object DemoSparkJob extends Serializable {
     run_lap(rdd)
 
     sc.stop()
+  }
+
+  def average_netflix_rating() : Unit = {
+    println("\nStarting SparkLap!" + "\n")
+
+    val logFile = "file:///data/dig/spark/netflix/result_all.csv" // Should be some file on your system
+    val sc = new PrivateSparkContext("Netflix Analysis")
+    val rdd = sc.getLapRDD(logFile)
+
+    println("Total Ratings: " + rdd.count() + "\n")
   }
 
   def run_sar(rdd: SAR_RDD[String]) : Unit = {
