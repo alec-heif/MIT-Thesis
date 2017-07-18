@@ -45,11 +45,18 @@ object DemoSparkJob extends Serializable {
     val rdd = sc.getLapRDD(logFile)
 
     println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
-    println("Total Ratings: " + rdd.count().toLong + "\n")
+    run_netflix(rdd)
 
     println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
     Laplace.setEnabled(false)
+    run_netflix(rdd)
+  }
+
+  def run_netflix(rdd : Lap_RDD[String]) : Unit = {
     println("Total Ratings: " + rdd.count().toLong + "\n")
+    val split = split_rdd(rdd)
+    def ratings = rdd.map(x => x(2).toDouble, new Range(0, 5))
+    println("Average Ratings" + ratings.avg() + "\n")
   }
 
   def run_sar(rdd: SAR_RDD[String]) : Unit = {
