@@ -42,14 +42,24 @@ object DemoSparkJob extends Serializable {
 
     val logFile = "file:///data/dig/spark/netflix/result_all.csv" // Should be some file on your system
     val sc = new PrivateSparkContext("Netflix Analysis")
-    val rdd = sc.getLapRDD(logFile)
+    val lap_rdd = sc.getLapRDD(logFile)
 
-    println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
-    run_netflix(rdd)
+//    println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
+//    run_netflix(lap_rdd)
+//
+//    println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
+//    Laplace.setEnabled(false)
+//    run_netflix(lap_rdd)
 
-    println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
-    Laplace.setEnabled(false)
-    run_netflix(rdd)
+    val sar_rdd = sc.getSarRDD(logFile)
+    def split_rdd = sar_rdd.map( line => {
+      def row = line.split(',')
+      def cleaned_row = row.map(col => col.toLowerCase().trim())
+      cleaned_row
+    })
+    def ratings = split_rdd.map(x => x(2).toDouble)
+    def median_rating = ratings.median()
+    println("Median rating: " + median_rating + "\n")
   }
 
   def run_netflix(rdd : Lap_RDD[String]) : Unit = {
