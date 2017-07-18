@@ -23,12 +23,12 @@ class PrivateSparkContext (name : String) {
     def base = ctx.textFile(path)
     def numLines = base.count()
 
-     def numPartitions = math.round(math.pow(numLines, 0.4)).toInt
-     def splitBase = base.splitSample(numPartitions)
-     new SAR_RDD(ctx, splitBase, numPartitions)
+//     def numPartitions = math.round(math.pow(numLines, 0.4)).toInt
+//     def splitBase = base.splitSample(numPartitions)
+//     new SAR_RDD(ctx, splitBase, numPartitions)
 
-//    def real_base = Seq[RDD[String]](base)
-//    new SAR_RDD(ctx, real_base, 1)
+    def real_base = Seq[RDD[String]](base)
+    new SAR_RDD(ctx, real_base, 1)
   }
 
   def stop() : Unit = { ctx.stop() }
