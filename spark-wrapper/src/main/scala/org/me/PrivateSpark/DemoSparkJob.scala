@@ -44,7 +44,12 @@ object DemoSparkJob extends Serializable {
     val sc = new PrivateSparkContext("Netflix Analysis")
     val rdd = sc.getLapRDD(logFile)
 
-    println("Total Ratings: " + rdd.count() + "\n")
+    println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
+    println("Total Ratings: " + rdd.count().toLong + "\n")
+
+    println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
+    Laplace.setEnabled(false)
+    println("Total Ratings: " + rdd.count().toLong + "\n")
   }
 
   def run_sar(rdd: SAR_RDD[String]) : Unit = {
