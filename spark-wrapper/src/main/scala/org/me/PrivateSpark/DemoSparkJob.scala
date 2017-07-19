@@ -5,7 +5,8 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    average_netflix_rating()
+//    average_netflix_rating()
+    start_lap()
   }
 
   def start_sar(): Unit = {
@@ -44,17 +45,17 @@ object DemoSparkJob extends Serializable {
     val sc = new PrivateSparkContext("Netflix Analysis")
     val lap_rdd = sc.getLapRDD(logFile)
 
-//    println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
-//    run_netflix(lap_rdd)
-//
-//    println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
-//    Laplace.setEnabled(false)
-//    run_netflix(lap_rdd)
+    println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
+    run_netflix(lap_rdd)
+
+    println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
+    Laplace.setEnabled(false)
+    run_netflix(lap_rdd)
 
     val sar_rdd = sc.getSarRDD(logFile)
     def split_rdd = sar_rdd.map( line => {
       def row = line.split(',')
-      def cleaned_row = row.map(col => col.toLowerCase().trim())
+      def cleaned_row = row.map(col => col.toLowerCase.trim())
       cleaned_row
     })
     def ratings = split_rdd.map(x => x(2).toDouble)
@@ -65,14 +66,14 @@ object DemoSparkJob extends Serializable {
   def run_netflix(rdd : Lap_RDD[String]) : Unit = {
     println("Total Ratings: " + rdd.count().toLong + "\n")
     val split = split_rdd(rdd)
-    def ratings = rdd.map(x => x(2).toDouble, new Range(0, 5))
+    def ratings = split.map(x => x(2).toDouble).setRange(new Range(0, 5))
     println("Average Ratings" + ratings.avg() + "\n")
   }
 
   def run_sar(rdd: SAR_RDD[String]) : Unit = {
     def split_rdd = rdd.map( line => {
       def row = line.split(',')
-      def cleaned_row = row.map(col => col.toLowerCase().trim())
+      def cleaned_row = row.map(col => col.toLowerCase.trim())
       cleaned_row
     })
 //    def heroin_deaths = split_rdd.filter(x => x(cols("heroin")).equals("y"))
@@ -96,14 +97,14 @@ object DemoSparkJob extends Serializable {
     demo_map_filter(split)
 
 //    demo_adversary_basic(split)
-
+//
 //    demo_adversary_clever(split)
-
+//
 //    demo_adversary_budget(split)
 
-//    demo_group_by(split)
+    demo_group_by(split)
 
-//    demo_multi_group(split)
+    demo_multi_group(split)
 
 
   }
@@ -118,7 +119,7 @@ object DemoSparkJob extends Serializable {
     println("Deaths by heroin: " + heroin_deaths.count() + "\n")
 
 
-    def heroin_ages = heroin_deaths.map(get_age, age_range)
+    def heroin_ages = heroin_deaths.map(get_age).setRange(age_range)
     println("Average age of heroin death: " + heroin_ages.avg() + "\n")
 
   }
@@ -141,14 +142,17 @@ object DemoSparkJob extends Serializable {
 
   def demo_group_by(rdd : Lap_RDD[Array[String]]) : Unit = {
 
-    def counties_of_interest = List("hartford", "new haven", "new london", "tolland")
-    def deaths_by_county = rdd.groupBy(x => x(cols("death_county")), counties_of_interest)
+    def counties_of_interest = List("hartford", "new haven", "new london", "tolland", "fartface")
+    def deaths_by_county = rdd.groupBy(x => x(cols("death_county"))).setKeys(counties_of_interest)
 
     println("Deaths by county: ")
     deaths_by_county.kCount().foreach(x => println(x._1 + ", " + x._2))
     println("")
 
-    def ages_by_county = deaths_by_county.mapValues(get_age, age_range)
+    def ages_by_county = deaths_by_county
+      .mapValues(get_age)
+      .setKeys(counties_of_interest)
+      .setRangeForKeys(counties_of_interest, age_range)
 
     println("Ages by county: ")
     ages_by_county.kAvg().foreach(x => println(x._1 + ", " + x._2))
@@ -157,8 +161,8 @@ object DemoSparkJob extends Serializable {
   }
 
   def demo_multi_group(rdd : Lap_RDD[Array[String]]) : Unit = {
-    def drug_cols = cols.filter(input => input._2 > 14)
-    def num_outputs = drug_cols.size
+    val drug_cols = cols.filter(input => input._2 > 14)
+    val num_outputs = drug_cols.size
 
     def drug_type_grouper(input : Array[String]) : List[(String, Array[String])] = {
 
@@ -175,12 +179,16 @@ object DemoSparkJob extends Serializable {
 
     }
 
-    def deaths_by_drug_type = rdd.groupByMulti(drug_type_grouper, drug_cols.keys.toSeq, num_outputs)
+    val drug_keys = drug_cols.keys.toSeq
+    val deaths_by_drug_type = rdd.groupByMulti(drug_type_grouper, num_outputs).setKeys(drug_keys)
+
     println("Deaths by drug type: ")
     deaths_by_drug_type.kCount().foreach(x => println(x._1 + ", " + x._2))
     println("")
 
-    def ages_by_drug_type = deaths_by_drug_type.mapValues(get_age, age_range)
+    val ages_by_drug_type = deaths_by_drug_type.mapValues(get_age)
+      .setRangeForKeys(drug_keys, age_range)
+
     println("Ages by drug type: ")
     ages_by_drug_type.kAvg().foreach(x => println(x._1 + ", " + x._2))
     println("")
@@ -199,14 +207,18 @@ object DemoSparkJob extends Serializable {
     def target_rdd = rdd.filter(x => is_target(x))
 
     def fentanyl_user_rdd = target_rdd.map(x => amplify(is_fentanyl_user(x)))
-    def cocaine_user_rdd = target_rdd.map(x => amplify(is_cocaine_user((x))))
+    def cocaine_user_rdd = target_rdd.map(x => amplify(is_cocaine_user(x)))
 
     print_if_nonzero(fentanyl_user_rdd.sum(), "fentanyl user")
     print_if_nonzero(cocaine_user_rdd.sum(), "cocaine user")
     println("")
 
-    def fentanyl_user_rdd_ranged = target_rdd.map(x => amplify(is_fentanyl_user(x)), new Range(0, 1))
-    def cocaine_user_rdd_ranged = target_rdd.map(x => amplify(is_cocaine_user((x))), new Range(0, 1))
+    def fentanyl_user_rdd_ranged = target_rdd
+      .map(x => amplify(is_fentanyl_user(x)))
+      .setRange(new Range(0, 1))
+    def cocaine_user_rdd_ranged = target_rdd
+      .map(x => amplify(is_cocaine_user(x)))
+      .setRange(new Range(0, 1))
 
     print_if_nonzero(fentanyl_user_rdd_ranged.sum(), "fentanyl user")
     print_if_nonzero(cocaine_user_rdd_ranged.sum(), "cocaine user")
@@ -224,7 +236,9 @@ object DemoSparkJob extends Serializable {
 
     def target_rdd = rdd.filter(x => is_target(x))
 
-    def fentanyl_user_rdd = target_rdd.map(x => amplify(is_fentanyl_user(x)), new Range(0, 100000))
+    def fentanyl_user_rdd = target_rdd
+      .map(x => amplify(is_fentanyl_user(x)))
+      .setRange(new Range(0, 100000))
 
     for (i <- 0 to 200) {
       println("Fentanyl user sum: " + fentanyl_user_rdd.sum())
@@ -243,13 +257,13 @@ object DemoSparkJob extends Serializable {
   def split_rdd(rdd : Lap_RDD[String]) : Lap_RDD[Array[String]] = {
     rdd.map( line => {
       def row = line.split(',')
-      def cleaned_row = row.map(col => col.toLowerCase().trim())
+      def cleaned_row = row.map(col => col.toLowerCase.trim())
       cleaned_row
     })
   }
 
   def age_range = new Range(10, 90)
-  val get_age = (x : Array[String]) => { x(cols("age")).toDouble }
+  def get_age(x : Array[String]) : Double = x(cols("age")).toDouble
 
   def is_target(x : Array[String]) : Boolean = {
     x(cols("date")).equals("11/22/2016") && x(cols("city")).equals("middletown")

@@ -7,58 +7,64 @@ import org.me.PrivateSpark.api.{Lap_PairRDD, Lap_RDD}
 import scala.reflect.ClassTag
 
 class Lap_RDD_NonReduceable[T](
-                                 delegate: RDD[T],
-                                 budget: Budget,
-                                 range : api.Range = new api.Range()
+                                 delegate: RDD[T]
+                                 , info: QueryInfo
+                                 , enforcement : Single_Enforcement
                                  ) extends Lap_RDD[T] {
 
   override def cache() : Unit = {
     delegate.cache()
   }
 
-  override def map[U : ClassTag](f: T => U, _range : api.Range = range) : Lap_RDD[U] = {
+  override def map[U : ClassTag](f: T => U) : Lap_RDD[U] = {
     val g = Cleaner.enforcePurity(f)
-    RDDCreator.create(delegate.map(g), budget, _range)
+    RDDCreator.create(delegate.map(g), info, enforcement)
   }
 
   override def filter(f: T => Boolean)(implicit tag : ClassTag[T]): Lap_RDD[T] = {
     val g = Cleaner.enforcePurity(f)
-    RDDCreator.create(delegate.filter(g), budget, range)
+    RDDCreator.create(delegate.filter(g), info, enforcement)
   }
 
-  override def groupBy[K] ( f : T => K , keys : Seq[K] )
+  override def groupBy[K] ( f : T => K)
                           (implicit tag : ClassTag[T]) : Lap_PairRDD[K, T] = {
     val g = Cleaner.enforcePurity(f)
     def multiGroup(input : T) : Seq[(K, T)] = Seq((g(input), input))
 
-    // All keys have the same range
-    var ranges = Map.empty[K, api.Range]
-    for (key <- keys) {
-      ranges = ranges + (key -> range)
-    }
-
-    groupByMulti(multiGroup, keys, 1, ranges)
+    groupByMulti(multiGroup, 1)
   }
 
   override def groupByMulti[K, V : ClassTag](
                                          grouper : T => Seq[(K, V)]
-                                         , keys : Seq[K]
                                          , maxOutputs : Int
-                                         , ranges : Map[K, api.Range] = Map.empty[K, api.Range]
                                          ) : Lap_PairRDD[K, V] = {
+
+    // Have to ensure no more than maxOutputs per input
     val g = Cleaner.enforcePurity(grouper)
+    val h = Utils.trim(g, maxOutputs) _
+    val newDelegate = delegate.flatMap(h)
 
-    val info = new QueryInfo[K](keys).set(maxOutputs).set(ranges)
-    val h = Utils.trim(g, info.outputs) _
+    // Existing range info is thrown away
+    val newEnforcement = Pair_Enforcement.default[K]()
 
-    RDDCreator.create(delegate.flatMap(h), budget, info)
+    // Outputs are multiplied by the max outputs for this query
+    val newInfo = info.scaleOutputs(maxOutputs)
+
+    // And now add all the new things
+    RDDCreator.create[K, V](newDelegate, newInfo, newEnforcement)
+  }
+
+  override def setRange(range: api.Range)(implicit tag: ClassTag[T]): Lap_RDD[T] = {
+    throw new UnsupportedOperationException("Only RDDs of Doubles can have Ranges enforced!")
   }
 
   override def count() : Double = {
     // Special case: count is allowed on all data types
-    if (budget.charge(budget.epsilon)) {
+    def budget = info.budget
+    if (budget.charge(info.outputs * budget.epsilon)) {
       def sensitivity = 1.0
-      Utils.noisify(delegate.count(), sensitivity, budget)
+      def scale = sensitivity / budget.epsilon
+      delegate.count() + Laplace.draw(scale)
     } else {
       throw new IllegalStateException("Privacy budget exceeded!")
     }
@@ -70,5 +76,6 @@ class Lap_RDD_NonReduceable[T](
   override def avg() : Double = {
     throw new UnsupportedOperationException("Not permitted!")
   }
+
 }
 

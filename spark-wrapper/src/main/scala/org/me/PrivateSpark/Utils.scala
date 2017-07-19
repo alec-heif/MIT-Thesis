@@ -27,9 +27,4 @@ object Utils {
     (input._1, input._2 + Laplace.draw(scale))
   }
 
-  def noisify(trueValue: Double, sensitivity : Double, budget : Budget) : Double = {
-    def scale = sensitivity / budget.epsilon
-    trueValue + Laplace.draw(scale)
-  }
-
 }
