@@ -60,9 +60,11 @@ object DemoSparkJob extends Serializable {
       def cleaned_row = row.map(col => col.toLowerCase.trim())
       cleaned_row
     })
-    def ratings = split_rdd.map(x => x(2).toDouble)
-    def median_rating = ratings.median()
+    val ratings = split_rdd.map(x => x(2).toDouble)
+    val median_rating = ratings.median()
+    val average_rating = ratings.average()
     println("Median rating: " + median_rating + "\n")
+    println("Average rating: " + average_rating + "\n")
   }
 
   def run_netflix(rdd : Lap_RDD[String]) : Unit = {
