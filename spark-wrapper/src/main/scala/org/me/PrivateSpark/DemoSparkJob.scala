@@ -5,8 +5,8 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-//    average_netflix_rating()
-    start_lap()
+    average_netflix_rating()
+    // start_lap()
   }
 
   def start_sar(): Unit = {
@@ -43,14 +43,16 @@ object DemoSparkJob extends Serializable {
 
     val logFile = "file:///data/dig/spark/netflix/result_all.csv" // Should be some file on your system
     val sc = new PrivateSparkContext("Netflix Analysis")
-    val lap_rdd = sc.getLapRDD(logFile)
 
+    /*
+    val lap_rdd = sc.getLapRDD(logFile)
     println("\n***************************PERTURBED OUTPUT********************************* " + "\n")
     run_netflix(lap_rdd)
 
     println("\n***************************ACTUAL OUTPUT********************************* " + "\n")
     Laplace.setEnabled(false)
     run_netflix(lap_rdd)
+    */
 
     val sar_rdd = sc.getSarRDD(logFile)
     def split_rdd = sar_rdd.map( line => {

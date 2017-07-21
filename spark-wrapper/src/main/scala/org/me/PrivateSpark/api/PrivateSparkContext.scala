@@ -20,13 +20,13 @@ class PrivateSparkContext (name : String) {
   }
 
   def getSarRDD(path: String) : SAR_RDD[String] = {
-    def base = ctx.textFile(path)
-    def numLines = base.count()
+    val base = ctx.textFile(path)
+    val numLines = base.count()
 
-    def numPartitions = math.round(math.pow(numLines, 0.4)).toInt
-    def partitionSize = numLines / numPartitions * 1.0
-    def weights = (1 to numPartitions).map(_ => partitionSize).toArray
-    def splitBase = base.randomSplit(weights)
+    val numPartitions = math.round(math.pow(numLines, 0.4)).toInt
+    val partitionSize = 1.0 * numLines / numPartitions
+    val weights = (1 to numPartitions).map(_ => partitionSize).toArray
+    val splitBase = base.randomSplit(weights)
     splitBase.foreach(x => x.cache())
     new SAR_RDD(ctx, splitBase, numPartitions)
 
