@@ -48,9 +48,9 @@ object DemoSparkJob extends Serializable {
       val file_name = "result_1000.csv"
       var file_location = ""
       if (should_use_hdfs) {
-        file_location = "hdfs:///dataset/netflix/" + file_name
+        file_location = "hdfs:///dataset/netflix/"
       } else {
-        file_location = "file:///data/dig/spark/netflix/" + file_name
+        file_location = "file:///data/dig/spark/netflix/"
       }
       val file_path = file_location + file_name
 
