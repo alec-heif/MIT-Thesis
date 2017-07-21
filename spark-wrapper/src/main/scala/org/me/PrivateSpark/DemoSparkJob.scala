@@ -41,7 +41,7 @@ object DemoSparkJob extends Serializable {
   def average_netflix_rating() : Unit = {
     println("\nStarting SparkLap!" + "\n")
 
-    val logFile = "file:///data/dig/spark/netflix/result_all.csv" // Should be some file on your system
+    val logFile = "file:///data/dig/spark/netflix/result_1000.csv" // Should be some file on your system
     val sc = new PrivateSparkContext("Netflix Analysis")
 
     /*

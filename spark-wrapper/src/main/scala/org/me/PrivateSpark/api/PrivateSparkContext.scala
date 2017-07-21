@@ -26,8 +26,8 @@ class PrivateSparkContext (name : String) {
     val numPartitions = math.round(math.pow(numLines, 0.4)).toInt
     val partitionSize = 1.0 * numLines / numPartitions
     val weights = (1 to numPartitions).map(_ => partitionSize).toArray
-    val splitBase = base.randomSplit(weights)
-    splitBase.foreach(x => x.cache())
+    val splitBase = base.splitSample(numPartitions).map(x => x.coalesce(1, shuffle = true))
+    // val splitBase = base.splitSample(numPartitions)
     new SAR_RDD(ctx, splitBase, numPartitions)
 
 //    def real_base = Seq[RDD[String]](base)
