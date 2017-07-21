@@ -14,7 +14,7 @@ object DemoSparkJob extends Serializable {
     val logFile = "file:///home/spark-user/thesis_repo/health_data.csv"
     val sc = new PrivateSparkContext("Simple App")
 
-    def rdd = sc.getSarRDD(logFile)
+    def rdd = sc.getSarRDD(logFile, true)
 
     run_sar(rdd)
   }
@@ -41,8 +41,36 @@ object DemoSparkJob extends Serializable {
   def average_netflix_rating() : Unit = {
     println("\nStarting SparkLap!" + "\n")
 
-    val logFile = "file:///data/dig/spark/netflix/result_1000.csv" // Should be some file on your system
-    val sc = new PrivateSparkContext("Netflix Analysis")
+    for (query_num <- 1 to 2; query_type <- 1 to 4) {
+      val should_use_hdfs = query_type == 1 || query_type == 2
+      val should_use_coalescing = query_type == 1 || query_type == 3
+
+      val file_name = "result_1000.csv"
+      var file_location = ""
+      if (should_use_hdfs) {
+        file_location = "hdfs:///dataset/netflix/" + file_name
+      } else {
+        file_location = "file:///data/dig/spark/netflix/" + file_name
+      }
+      val file_path = file_location + file_name
+
+      val num_str = query_num.toString
+      val c_str = if(should_use_coalescing) "c=true" else "c=false"
+      val h_str = if(should_use_hdfs) "h=true" else "h=false"
+
+      val sc = new PrivateSparkContext(file_name + ", " + c_str + ", " + h_str + ", " + num_str)
+
+      val sar_rdd = sc.getSarRDD(file_path, should_use_coalescing)
+      def split_rdd = sar_rdd.map( line => {
+        def row = line.split(',')
+        def cleaned_row = row.map(col => col.toLowerCase.trim())
+        cleaned_row
+      })
+      val ratings = split_rdd.map(x => x(2).toDouble)
+      val median_rating = ratings.median()
+      println("Median rating: " + median_rating + "\n")
+
+    }
 
     /*
     val lap_rdd = sc.getLapRDD(logFile)
@@ -54,17 +82,6 @@ object DemoSparkJob extends Serializable {
     run_netflix(lap_rdd)
     */
 
-    val sar_rdd = sc.getSarRDD(logFile)
-    def split_rdd = sar_rdd.map( line => {
-      def row = line.split(',')
-      def cleaned_row = row.map(col => col.toLowerCase.trim())
-      cleaned_row
-    })
-    val ratings = split_rdd.map(x => x(2).toDouble)
-    val median_rating = ratings.median()
-    val average_rating = ratings.average()
-    println("Median rating: " + median_rating + "\n")
-    println("Average rating: " + average_rating + "\n")
   }
 
   def run_netflix(rdd : Lap_RDD[String]) : Unit = {
