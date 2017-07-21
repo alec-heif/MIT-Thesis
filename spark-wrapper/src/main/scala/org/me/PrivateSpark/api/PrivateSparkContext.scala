@@ -23,9 +23,12 @@ class PrivateSparkContext (name : String) {
     def base = ctx.textFile(path)
     def numLines = base.count()
 
-     def numPartitions = math.round(math.pow(numLines, 0.4)).toInt
-     def splitBase = base.splitSample(numPartitions)
-     new SAR_RDD(ctx, splitBase, numPartitions)
+    def numPartitions = math.round(math.pow(numLines, 0.4)).toInt
+    def partitionSize = numLines / numPartitions * 1.0
+    def weights = (1 to numPartitions).map(_ => partitionSize).toArray
+    def splitBase = base.randomSplit(weights)
+    splitBase.foreach(x => x.cache())
+    new SAR_RDD(ctx, splitBase, numPartitions)
 
 //    def real_base = Seq[RDD[String]](base)
 //    new SAR_RDD(ctx, real_base, 1)
