@@ -5,7 +5,8 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    average_netflix_rating()
+    average_netflix_rating_lap(true)
+    average_netflix_rating_lap(false)
     // start_lap()
   }
 
@@ -38,7 +39,25 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def average_netflix_rating() : Unit = {
+  def average_netflix_rating_lap(small : Boolean) : Unit = {
+    val file_name = if (small) "result_1000.csv" else "result_all.csv"
+    val file_location = "hdfs:///datasets/netflix/"
+    val file_path = file_location + file_name
+
+    val name = if (small) "Laplacian Netflix 1000" else "Laplacian Netflix Full"
+    val sc = new PrivateSparkContext(name)
+
+    val lap_rdd = sc.getLapRDD(file_path)
+    def split_rdd = lap_rdd.map( line => {
+      def row = line.split(',')
+      def cleaned_row = row.map(col => col.toLowerCase.trim())
+      cleaned_row
+    })
+    val ratings = split_rdd.map(x => x(2).toDouble).setRange(new Range(0, 5))
+    println(ratings.avg())
+  }
+
+  def average_netflix_rating_sam() : Unit = {
     println("\nStarting SparkLap!" + "\n")
 
     for (query_num <- 1 to 2; query_type <- 1 to 4) {
@@ -48,7 +67,7 @@ object DemoSparkJob extends Serializable {
       val file_name = "result_1000.csv"
       var file_location = ""
       if (should_use_hdfs) {
-        file_location = "hdfs:///dataset/netflix/"
+        file_location = "hdfs:///datasets/netflix/"
       } else {
         file_location = "file:///data/dig/spark/netflix/"
       }
@@ -69,7 +88,7 @@ object DemoSparkJob extends Serializable {
       val ratings = split_rdd.map(x => x(2).toDouble)
       val median_rating = ratings.median()
       println("Median rating: " + median_rating + "\n")
-
+      sc.stop()
     }
 
     /*
