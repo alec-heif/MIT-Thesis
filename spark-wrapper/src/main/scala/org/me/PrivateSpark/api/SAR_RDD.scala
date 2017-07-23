@@ -1,16 +1,15 @@
 package org.me.PrivateSpark.api
 
-import org.apache.spark.{Partitioner, TaskContext, Partition, SparkContext}
-import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkContext._
 import org.me.PrivateSpark.{Laplace, Winsorize}
 
-import scala.collection.Map
-import scala.collection.parallel.ParSeq
+import scala.collection.Set
+
+import scala.collection.parallel.ParSet
 import scala.reflect.{ClassTag, classTag}
 
-class SAR_RDD[T](_sc : SparkContext, _partitions : ParSeq[RDD[T]], _numPartitions: Int) {
+class SAR_RDD[T](_sc : SparkContext, _partitions : ParSet[RDD[T]], _numPartitions: Int) {
 
   private val sc = _sc
   private val partitions = _partitions
@@ -30,27 +29,14 @@ class SAR_RDD[T](_sc : SparkContext, _partitions : ParSeq[RDD[T]], _numPartition
     result(x => x.cache())
   }
 
-  def reduce(f: (T, T) => T)(implicit evidence: ClassTag[T]) = {
-    // First check the type of T
-    partitions.head match {
-      case single : RDD[Double @unchecked] if evidence == classTag[Double] =>
-        // Result is a single double, so can shortcut. For now just do average
-        def _partitions = partitions.asInstanceOf[Seq[RDD[Double]]]
-        def _f = f.asInstanceOf[(Double, Double) => Double]
-        def results = _partitions.map(x => x.reduce(_f))
-        def average = results.sum / results.length
-        average
-    }
-  }
-
   def median()(implicit evidence : ClassTag[T]) = {
     partitions.head match {
       case single : RDD[Double @unchecked] if evidence == classTag[Double] =>
-        val _partitions = partitions.asInstanceOf[Seq[RDD[Double]]]
+        val _partitions = partitions.asInstanceOf[ParSet[RDD[Double]]].seq
         val sorted = _partitions.map(x => x.sortBy(x => x))
         val count = _partitions.head.count()
         val zipped = sorted.map(x => x.zipWithIndex.map{case (k,v) => (v,k)})
-        val medians : Seq[Double] = zipped.map(x => x.lookup(count / 2).head)
+        val medians : Set[Double] = zipped.map(x => x.lookup(count / 2).head).seq
         val result = aggregate(medians)
 //        def average_of_medians = medians.sum / medians.length
 //        average_of_medians
@@ -62,21 +48,23 @@ class SAR_RDD[T](_sc : SparkContext, _partitions : ParSeq[RDD[T]], _numPartition
   def average()(implicit evidence : ClassTag[T]) = {
     partitions.head match {
       case single : RDD[Double @unchecked] if evidence == classTag[Double] =>
-        val _partitions = partitions.asInstanceOf[Seq[RDD[Double]]]
+        val _partitions = partitions.asInstanceOf[ParSet[RDD[Double]]]
         val averages = _partitions.map(x => {
           val count = x.count()
           val sum = x.reduce(_ + _)
           sum / count
         })
-        val result = aggregate(averages)
+        val result = aggregate(averages.seq)
         result
 
     }
   }
 
-  def aggregate(samples : Seq[Double]) : Double = {
+  def aggregate(_samples : Set[Double]) : Double = {
     // TODO
     def epsilon = 0.1
+
+    val samples = _samples.toSeq
 
     val lower_crude = Winsorize.private_quantile(samples, 0.25, epsilon / 4)
     val upper_crude = Winsorize.private_quantile(samples, 0.75, epsilon / 4)

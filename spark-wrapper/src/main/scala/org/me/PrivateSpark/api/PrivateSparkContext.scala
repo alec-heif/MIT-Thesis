@@ -5,7 +5,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.me.PrivateSpark.{Single_Enforcement, QueryInfo, Budget, RDDCreator}
 import com.redhat.et.silex.sample.split.implicits._
 
-import scala.collection.parallel.ParSeq
+import scala.collection.parallel.{ParSet, ParSeq}
 
 
 class PrivateSparkContext (name : String) {
@@ -30,7 +30,7 @@ class PrivateSparkContext (name : String) {
     val partitionSize = 1.0 * numLines / numPartitions
     val weights = (1 to numPartitions).map(_ => partitionSize).toArray
 
-    var splitBase : ParSeq[RDD[String]] = base.splitSample(numPartitions).par
+    var splitBase : ParSet[RDD[String]] = base.splitSample(numPartitions).toSet.par
 
     if (should_coalesce) {
       splitBase = splitBase.map(x => x.coalesce(1, shuffle = true))
