@@ -32,7 +32,7 @@ class SAR_RDD[T](_sc : SparkContext, _partitions : ParSet[RDD[T]], _numPartition
   def median()(implicit evidence : ClassTag[T]) = {
     partitions.head match {
       case single : RDD[Double @unchecked] if evidence == classTag[Double] =>
-        val _partitions = partitions.asInstanceOf[ParSet[RDD[Double]]].seq
+        val _partitions = partitions.asInstanceOf[ParSet[RDD[Double]]]
         val sorted = _partitions.map(x => x.sortBy(x => x))
         val count = _partitions.head.count()
         val zipped = sorted.map(x => x.zipWithIndex.map{case (k,v) => (v,k)})

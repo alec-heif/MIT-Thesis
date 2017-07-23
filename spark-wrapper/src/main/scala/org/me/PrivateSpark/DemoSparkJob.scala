@@ -77,7 +77,7 @@ object DemoSparkJob extends Serializable {
       val should_use_hdfs = query_type == 1 || query_type == 2
       val should_use_coalescing = query_type == 1 || query_type == 3
 
-      val file_name = "result_1000.csv"
+      val file_name = "result_all.csv"
       var file_location = ""
       if (should_use_hdfs) {
         file_location = "hdfs:///datasets/netflix/"
