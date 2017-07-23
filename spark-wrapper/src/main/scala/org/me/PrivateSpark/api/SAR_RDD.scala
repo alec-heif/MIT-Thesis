@@ -7,9 +7,10 @@ import org.apache.spark.SparkContext._
 import org.me.PrivateSpark.{Laplace, Winsorize}
 
 import scala.collection.Map
+import scala.collection.parallel.ParSeq
 import scala.reflect.{ClassTag, classTag}
 
-class SAR_RDD[T](_sc : SparkContext, _partitions : Seq[RDD[T]], _numPartitions: Int) {
+class SAR_RDD[T](_sc : SparkContext, _partitions : ParSeq[RDD[T]], _numPartitions: Int) {
 
   private val sc = _sc
   private val partitions = _partitions
