@@ -5,6 +5,12 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
+    println("PERTURBED: ")
+    average_netflix_rating_lap(true)
+    average_netflix_rating_lap(false)
+
+    println("ACTUAL: ")
+    Laplace.setEnabled(false)
     average_netflix_rating_lap(true)
     average_netflix_rating_lap(false)
     // start_lap()
@@ -40,21 +46,25 @@ object DemoSparkJob extends Serializable {
   }
 
   def average_netflix_rating_lap(small : Boolean) : Unit = {
-    val file_name = if (small) "result_1000.csv" else "result_all.csv"
-    val file_location = "hdfs:///datasets/netflix/"
-    val file_path = file_location + file_name
+    for (exp_num <- 1 to 2) {
+      val file_name = if (small) "result_1000.csv" else "result_all.csv"
+      val file_location = "file:///data/dig/spark/netflix/"
+      val file_path = file_location + file_name
 
-    val name = if (small) "Laplacian Netflix 1000" else "Laplacian Netflix Full"
-    val sc = new PrivateSparkContext(name)
+      val name = if (small) "Laplacian Netflix 1000" else "Laplacian Netflix Full"
+      val sc = new PrivateSparkContext(name)
 
-    val lap_rdd = sc.getLapRDD(file_path)
-    def split_rdd = lap_rdd.map( line => {
-      def row = line.split(',')
-      def cleaned_row = row.map(col => col.toLowerCase.trim())
-      cleaned_row
-    })
-    val ratings = split_rdd.map(x => x(2).toDouble).setRange(new Range(0, 5))
-    println(ratings.avg())
+      val lap_rdd = sc.getLapRDD(file_path)
+      def split_rdd = lap_rdd.map( line => {
+        def row = line.split(',')
+        def cleaned_row = row.map(col => col.toLowerCase.trim())
+        cleaned_row
+      })
+      val ratings = split_rdd.map(x => x(2).toDouble).setRange(new Range(0, 5))
+      println(name + " " + exp_num.toString + ": " + ratings.avg())
+
+      sc.stop()
+    }
   }
 
   def average_netflix_rating_sam() : Unit = {
