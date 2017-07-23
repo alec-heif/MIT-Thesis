@@ -5,6 +5,7 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
+    /*
     println("PERTURBED: ")
     average_netflix_rating_lap(true)
     average_netflix_rating_lap(false)
@@ -13,6 +14,8 @@ object DemoSparkJob extends Serializable {
     Laplace.setEnabled(false)
     average_netflix_rating_lap(true)
     average_netflix_rating_lap(false)
+    */
+    average_netflix_rating_sam()
     // start_lap()
   }
 
@@ -74,7 +77,7 @@ object DemoSparkJob extends Serializable {
       val should_use_hdfs = query_type == 1 || query_type == 2
       val should_use_coalescing = query_type == 1 || query_type == 3
 
-      val file_name = "result_all.csv"
+      val file_name = "result_1000.csv"
       var file_location = ""
       if (should_use_hdfs) {
         file_location = "hdfs:///datasets/netflix/"
