@@ -48,11 +48,9 @@ class SAR_RDD[T](_sc : SparkContext, _partitions : ParSet[RDD[T]], _numPartition
   def average()(implicit evidence : ClassTag[T]) = {
     partitions.head match {
       case single : RDD[Double @unchecked] if evidence == classTag[Double] =>
-        val _partitions = partitions.asInstanceOf[ParSet[RDD[Double]]]
-        val averages = _partitions.map(x => {
-          val count = x.count()
-          val sum = x.reduce(_ + _)
-          sum / count
+        val averages : ParSet[Double] = partitions.map(x => {
+          val _x = x.asInstanceOf[RDD[Double]]
+          _x.mean()
         })
         val result = aggregate(averages.seq)
         result

@@ -22,8 +22,9 @@ class PrivateSparkContext (name : String) {
     RDDCreator.create(ctx.textFile(path), new QueryInfo(budget), Single_Enforcement.default())
   }
 
-  def getSarRDD(path: String, should_coalesce : Boolean) : SAR_RDD[String] = {
-    val base = ctx.textFile(path)
+  def getSarRDD(path: String, should_split : Boolean) : SAR_RDD[String] = {
+    val base = ctx.textFile(path).cache()
+if (should_split) {
     val numLines = base.count()
 
     val numPartitions = math.round(math.pow(numLines, 0.4)).toInt
@@ -32,14 +33,18 @@ class PrivateSparkContext (name : String) {
 
     var splitBase : ParSet[RDD[String]] = base.splitSample(numPartitions).toSet.par
 
-    if (should_coalesce) {
+    // if (should_coalesce) {
       splitBase = splitBase.map(x => x.coalesce(1, shuffle = true))
-    }
+    // }
 
     new SAR_RDD[String](ctx, splitBase, numPartitions)
+}
+else {
 
-//    def real_base = Seq[RDD[String]](base)
-//    new SAR_RDD(ctx, real_base, 1)
+    def real_base = Seq[RDD[String]](base).toSet.par
+    new SAR_RDD(ctx, real_base, 1)
+}
+
   }
 
   def stop() : Unit = { ctx.stop() }

@@ -73,9 +73,9 @@ object DemoSparkJob extends Serializable {
   def average_netflix_rating_sam() : Unit = {
     println("\nStarting SparkLap!" + "\n")
 
-    for (query_num <- 1 to 2; query_type <- 1 to 4) {
+    for (query_num <- 1 to 4; query_type <- 1 to 4) {
       val should_use_hdfs = query_type == 1 || query_type == 2
-      val should_use_coalescing = query_type == 1 || query_type == 3
+      val should_split = query_type == 1 || query_type == 3
 
       val file_name = "result_all.csv"
       var file_location = ""
@@ -87,12 +87,12 @@ object DemoSparkJob extends Serializable {
       val file_path = file_location + file_name
 
       val num_str = query_num.toString
-      val c_str = if(should_use_coalescing) "c=true" else "c=false"
+      val c_str = if(should_split) "s=true" else "s=false"
       val h_str = if(should_use_hdfs) "h=true" else "h=false"
 
       val sc = new PrivateSparkContext(file_name + ", " + c_str + ", " + h_str + ", " + num_str)
 
-      val sar_rdd = sc.getSarRDD(file_path, should_use_coalescing)
+      val sar_rdd = sc.getSarRDD(file_path, should_split)
       def split_rdd = sar_rdd.map( line => {
         def row = line.split(',')
         def cleaned_row = row.map(col => col.toLowerCase.trim())
@@ -100,7 +100,9 @@ object DemoSparkJob extends Serializable {
       })
       val ratings = split_rdd.map(x => x(2).toDouble)
       val median_rating = ratings.median()
+      val average_rating = ratings.average()
       println("Median rating: " + median_rating + "\n")
+      println("Average rating: " + average_rating + "\n")
 
       sc.stop()
 
