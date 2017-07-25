@@ -15,7 +15,7 @@ object DemoSparkJob extends Serializable {
     average_netflix_rating_lap(true)
     average_netflix_rating_lap(false)
     */
-    average_netflix_rating_sam()
+    avg_and_median_ascii_sums()
     // start_lap()
   }
 
@@ -68,6 +68,43 @@ object DemoSparkJob extends Serializable {
 
       sc.stop()
     }
+  }
+
+  def avg_and_median_ascii_sums() : Unit = {
+    println("\nStarting SparkSAM!" + "\n")
+
+    for (query_num <- 1 to 4; query_type <- 1 to 4) {
+      val should_use_hdfs = query_type == 1 || query_type == 2
+      val should_split = query_type == 1 || query_type == 3
+
+      val file_name = "result_all.csv"
+      var file_location = ""
+      if (should_use_hdfs) {
+        file_location = "hdfs:///datasets/netflix/"
+      } else {
+        file_location = "file:///data/dig/spark/netflix/"
+      }
+      val file_path = file_location + file_name
+
+      val num_str = query_num.toString
+      val c_str = if(should_split) "s=true" else "s=false"
+      val h_str = if(should_use_hdfs) "h=true" else "h=false"
+
+      val sc = new PrivateSparkContext("ASCII: " + file_name + ", " + c_str + ", " + h_str + ", " + num_str)
+
+      val sar_rdd = sc.getSarRDD(file_path, should_split)
+      def ascii_sum = sar_rdd.map(line => {
+        line.map(_.toByte).sum.toDouble
+      })
+      val median_rating = ascii_sum.median()
+      val average_rating = ascii_sum.average()
+      println("Median ascii sum: " + median_rating + "\n")
+      println("Average ascii sum: " + average_rating + "\n")
+
+      sc.stop()
+
+    }
+
   }
 
   def average_netflix_rating_sam() : Unit = {
