@@ -45,7 +45,7 @@ class Lap_RDD_Reduceable[T](
                                          ) : Lap_PairRDD[K, V] = {
     // Have to ensure no more than maxOutputs per input
     val g = Cleaner.enforcePurity(grouper)
-    val h = Utils.trim(g, maxOutputs) _
+    val h = if (Laplace.getEnabled) Utils.trim(g, maxOutputs) _ else g
     val newDelegate = delegate.flatMap(h)
 
     // Existing range info is thrown away
