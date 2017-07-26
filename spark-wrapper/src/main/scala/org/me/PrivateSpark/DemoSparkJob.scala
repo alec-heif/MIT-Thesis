@@ -45,11 +45,11 @@ object DemoSparkJob extends Serializable {
 
   def run_aol(rdd : Lap_RDD[String], name : String) : Unit = {
     val lines = rdd.map(aol_line)
-    val unique_searches = lines.map(_._1).distinct()
-    val unique_words = unique_searches.groupByMulti(x => x.split(" ").map(y => (y, 1)), 10)
-    val mac = unique_words.get("mac").count()
-    val pc = unique_words.get("pc").count()
-    println(name + ": mac=" + mac + ", pc=" + pc)
+    val unique_searches = lines.map(x => x._2).distinct()
+    val unique_words = unique_searches.groupByMulti(x => x.split(" ").map(y => (y, 1)), 10).setKeys(List("mac", "pc"))
+    val word_map = unique_words.kCount()
+    println(name)
+    word_map.foreach(x => println(x._1 + ": " + x._2))
   }
 
 //  def run_netflix(rdd : Lap_RDD[String]) : Unit = {
