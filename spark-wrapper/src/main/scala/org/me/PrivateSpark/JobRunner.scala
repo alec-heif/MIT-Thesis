@@ -19,7 +19,7 @@ object JobRunner {
 
   def run_sam(exp_name : String, file_name : String, exp_num : Int, f : (SAR_RDD[String], String) => Unit)
   : Unit = {
-    for (hdfs_num <- 1 to 1; private_num <- 1 to 2) {
+    for (hdfs_num <- 1 to 1; private_num <- 1 to 1) {
       val hdfs = hdfs_num == 1
       val priv = private_num == 1
 
@@ -34,7 +34,7 @@ object JobRunner {
 
   def run_lap(exp_name : String, file_name : String, exp_num : Int, f : (Lap_RDD[String], String) => Unit)
   = {
-    for (hdfs_num <- 1 to 1; private_num <- 1 to 2) {
+    for (hdfs_num <- 1 to 1; private_num <- 1 to 1) {
       val hdfs = hdfs_num == 1
       val priv = private_num == 1
 
