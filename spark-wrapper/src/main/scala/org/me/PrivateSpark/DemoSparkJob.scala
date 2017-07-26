@@ -14,14 +14,18 @@ object DemoSparkJob extends Serializable {
   }
 
   def aol_line(line : String) = {
-    val fields=line.split("\t")
+    val fields =line.split("\t")
     //ID:Int, query:String, date:String, hour:Int, min:Int,itemrank:Int, url:String
     val ID=fields(0)
     val query=fields(1)
     val date=fields(2)
-    val rank=fields(3).toInt
-    val url=fields(4)
-    (ID,query,date,rank,url)
+    if (fields.length == 5) {
+      val rank=fields(3).toInt
+      val url=fields(4)
+      (ID,query,date,rank,url)
+    } else {
+      (ID,query,date, "", "")
+    }
   }
 
   def run_aol(rdd : Lap_RDD[String], name : String) : Unit = {
