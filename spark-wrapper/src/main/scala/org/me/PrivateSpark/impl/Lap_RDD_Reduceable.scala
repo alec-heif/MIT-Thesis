@@ -17,6 +17,10 @@ class Lap_RDD_Reduceable[T](
     delegate.cache()
   }
 
+  override def distinct()(implicit tag : ClassTag[T]): Lap_RDD[T] = {
+    RDDCreator.create(delegate.distinct(), info, enforcement)
+  }
+
   override def map[U : ClassTag](f: T => U) : Lap_RDD[U] = {
     val g = Cleaner.enforcePurity(f)
     RDDCreator.create(delegate.map(g), info, enforcement)

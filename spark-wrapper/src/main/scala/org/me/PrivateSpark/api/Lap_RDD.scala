@@ -12,6 +12,12 @@ trait Lap_RDD[T] extends Serializable {
   def cache() : Unit
 
   /**
+   * Returns an RDD of only unique elements with this RDD.
+   * @return
+   */
+  def distinct()(implicit tag : ClassTag[T]) : Lap_RDD[T]
+
+  /**
    * Takes in a function and applies it to each element in the RDD, returning a new
    * RDD consisting of the results of the function after being applied to each element.
    *
@@ -58,6 +64,7 @@ trait Lap_RDD[T] extends Serializable {
                                  f : T => Seq[(K, V)]
                                  , maxOutputs : Int = 1
                                  ) : Lap_PairRDD[K, V]
+
 
   /**
    * Set the Range for this particular RDD, which will be enforced at time of reduction

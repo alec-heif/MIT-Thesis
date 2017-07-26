@@ -2,7 +2,7 @@ package org.me.PrivateSpark.api
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
-import org.me.PrivateSpark.{Single_Enforcement, QueryInfo, Budget, RDDCreator}
+import org.me.PrivateSpark._
 import com.redhat.et.silex.sample.split.implicits._
 
 import scala.collection.parallel.{ParSet, ParSeq}
@@ -18,18 +18,19 @@ class PrivateSparkContext (name : String) {
 
   def budget = _budget
 
-  def getLapRDD(path: String) : Lap_RDD[String] = {
+  def getLapRDD(path: String, is_private : Boolean) : Lap_RDD[String] = {
+    val lap_enabled = if (is_private) true else false
+    Laplace.setEnabled(lap_enabled)
     RDDCreator.create(ctx.textFile(path), new QueryInfo(budget), Single_Enforcement.default())
   }
 
-  def getSarRDD(path: String, should_split : Boolean) : SAR_RDD[String] = {
+  def getSarRDD(path: String, is_private : Boolean) : SAR_RDD[String] = {
     val base = ctx.textFile(path).cache()
-    if (should_split) {
+    if (is_private) {
+      Laplace.setEnabled(true)
       val numLines = base.count()
 
       val numPartitions = math.round(math.pow(numLines, 0.4)).toInt
-      val partitionSize = 1.0 * numLines / numPartitions
-      val weights = (1 to numPartitions).map(_ => partitionSize).toArray
 
       var splitBase : ParSet[RDD[String]] = base.splitSample(numPartitions).toSet.par
 
@@ -38,7 +39,7 @@ class PrivateSparkContext (name : String) {
       new SAR_RDD[String](ctx, splitBase, numPartitions)
     }
     else {
-
+      Laplace.setEnabled(false)
       def real_base = Seq[RDD[String]](base).toSet.par
       new SAR_RDD(ctx, real_base, 1)
     }
