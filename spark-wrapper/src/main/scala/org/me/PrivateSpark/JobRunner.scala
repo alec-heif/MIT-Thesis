@@ -3,11 +3,12 @@ package org.me.PrivateSpark
 import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext}
 
 object JobRunner {
-  def get_name(prefix : String, file_name : String, use_hdfs : Boolean, is_private : Boolean) : String = {
-    val n = file_name
+  def get_name(prefix : String, file_name : String, use_hdfs : Boolean, is_private : Boolean, num : Int) : String = {
+    val f = file_name
     val h = if (use_hdfs) "h=true" else "h=false"
     val p = if (is_private) "p=true" else "p=false"
-    val name = prefix + ": " + n + ", " + p + ", " + h
+    val n = "n=" + num
+    val name = prefix + ": " + f + ", " + p + ", " + h + ", " + n
     name
   }
 
@@ -21,11 +22,12 @@ object JobRunner {
       val hdfs = hdfs_num == 1
       val priv = private_num == 1
 
-      val name = get_name(exp_name, file_name, hdfs, priv)
+      val name = get_name(exp_name, file_name, hdfs, priv, exp_num)
 
       val sc = new PrivateSparkContext(name)
       val rdd = sc.getSarRDD(get_filepath(file_name, hdfs), priv)
       f(rdd, name)
+      sc.stop()
     }
   }
 
@@ -35,11 +37,12 @@ object JobRunner {
       val hdfs = hdfs_num == 1
       val priv = private_num == 1
 
-      val name = get_name(exp_name, file_name, hdfs, priv)
+      val name = get_name(exp_name, file_name, hdfs, priv, exp_num)
 
       val sc = new PrivateSparkContext(name)
       val rdd = sc.getLapRDD(get_filepath(file_name, hdfs), priv)
       f(rdd, name)
+      sc.stop()
     }
   }
 

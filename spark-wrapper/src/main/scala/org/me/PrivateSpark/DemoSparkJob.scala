@@ -8,7 +8,7 @@ object DemoSparkJob extends Serializable {
     JobRunner.run_lap(
       exp_name="AOL_Avg",
       file_name="/aol/aol_dataset.csv",
-      exp_count=1,
+      exp_count=4,
       f=run_aol
     )
   }
