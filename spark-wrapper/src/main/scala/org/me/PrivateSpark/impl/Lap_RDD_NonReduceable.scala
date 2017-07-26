@@ -45,7 +45,7 @@ class Lap_RDD_NonReduceable[T](
 
     // Have to ensure no more than maxOutputs per input
     val g = Cleaner.enforcePurity(grouper)
-    val h = if (Laplace.getEnabled) Utils.trim(g, maxOutputs) _ else g
+    val h = Utils.trim(g, maxOutputs) _
     val newDelegate = delegate.flatMap(h)
 
     // Existing range info is thrown away

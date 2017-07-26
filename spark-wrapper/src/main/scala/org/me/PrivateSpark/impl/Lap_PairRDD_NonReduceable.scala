@@ -82,25 +82,21 @@ class Lap_PairRDD_NonReduceable [K, V](
   // Key enforcement needs to happen for both Reduceable and NonReduceable RDDs!
   def enforceKeys(output : Seq[(K, Double)], keys : Seq[K])
                                    : Seq[(K, Double)] = {
-    if (Laplace.enabled) {
-      // Use sets to randomize order
-      val expectedKeys = keys.toSet
-      val outputSet = output.toSet
+    // Use sets to randomize order
+    val expectedKeys = keys.toSet
+    val outputSet = output.toSet
 
-      // First get rid of all keys that are not expected
-      val matcher = Utils.keyMatch(expectedKeys) _
-      val trimmedOutputSet: Set[(K, Double)] = outputSet.filter(matcher)
+    // First get rid of all keys that are not expected
+    val matcher = Utils.keyMatch(expectedKeys) _
+    val trimmedOutputSet : Set[(K, Double)] = outputSet.filter(matcher)
 
-      // Then add any keys that are expected but are missing
-      val outputKeys = trimmedOutputSet.map(x => x._1)
-      val missingKeys = expectedKeys.diff(outputKeys)
-      val missingOutputSet: Set[(K, Double)] = missingKeys.map(x => (x, 0.0))
-      val finalOutputSet = trimmedOutputSet ++ missingOutputSet
+    // Then add any keys that are expected but are missing
+    val outputKeys = trimmedOutputSet.map(x => x._1)
+    val missingKeys = expectedKeys.diff(outputKeys)
+    val missingOutputSet : Set[(K, Double)] = missingKeys.map(x => (x, 0.0))
+    val finalOutputSet = trimmedOutputSet ++ missingOutputSet
 
-      // Finally convert back to Seq
-      finalOutputSet.toSeq
-    } else {
-      output
-    }
+    // Finally convert back to Seq
+    finalOutputSet.toSeq
   }
 }
