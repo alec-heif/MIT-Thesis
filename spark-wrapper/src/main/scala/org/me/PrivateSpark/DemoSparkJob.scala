@@ -13,13 +13,15 @@ object DemoSparkJob extends Serializable {
         exp_num,
         f=run_aol
       )
-      val sc = new SparkContext(new SparkConf().setAppName("AOL_AVG_ACTUAL: " + exp_num))
+      val name = "AOL_Avg: /aol/aol_dataset.csv, p=false, h=true, n=" + exp_num
+      val sc = new SparkContext(new SparkConf().setAppName(name))
       val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
       val queries = rdd.map(x => x.split("\t")(1))
       val words = queries.distinct().flatMap(x => x.split(" "))
       val mac = words.filter(x => x.equals("mac")).count()
       val pc = words.filter(x => x.equals("pc")).count()
       println("ACTUAL: mac=" + mac + ", pc=" + pc)
+      sc.stop()
     }
   }
 
