@@ -1,16 +1,26 @@
 package org.me.PrivateSpark
 
+import org.apache.spark.{SparkConf, SparkContext}
 import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    JobRunner.run_lap(
-      exp_name="AOL_Avg",
-      file_name="/aol/aol_dataset.csv",
-      exp_count=4,
-      f=run_aol
-    )
+    for (exp_num <- 1 to 4) {
+      JobRunner.run_lap(
+        exp_name="AOL_Avg",
+        file_name="/aol/aol_dataset.csv",
+        exp_num,
+        f=run_aol
+      )
+      val sc = new SparkContext(new SparkConf().setAppName("AOL_AVG_ACTUAL: " + exp_num))
+      val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
+      val queries = rdd.map(x => x.split("\t")(1))
+      val words = queries.distinct().flatMap(x => x.split(" "))
+      val mac = words.filter(x => x.equals("mac")).count()
+      val pc = words.filter(x => x.equals("pc")).count()
+      println("ACTUAL: mac=" + mac + ", pc=" + pc)
+    }
   }
 
   def aol_line(line : String) = {
