@@ -20,17 +20,23 @@ object DemoSparkJob extends Serializable {
     val query=fields(1)
     val date=fields(2)
     if (fields.length == 5) {
-      val rank=fields(3).toInt
+      var rank = 0
+      try {
+        rank = fields(3).toInt
+      } catch {
+        case n : NumberFormatException => println(line)
+      }
       val url=fields(4)
       (ID,query,date,rank,url)
     } else {
-      (ID,query,date, "", "")
+      (ID,query,date, 0, "")
     }
   }
 
   def run_aol(rdd : Lap_RDD[String], name : String) : Unit = {
-    val unique_searches = rdd.map(aol_line).map(_._1).distinct().count()
-    val total_searches = rdd.map(aol_line).map(_._2).count()
+    val lines = rdd.map(aol_line)
+    val unique_searches = lines.map(_._1).distinct().count()
+    val total_searches = lines.count()
     println(name + ": total=" + total_searches + ", unique=" + unique_searches)
   }
 
