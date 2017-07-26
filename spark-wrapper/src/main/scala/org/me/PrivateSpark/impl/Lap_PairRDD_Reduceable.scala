@@ -148,50 +148,58 @@ class Lap_PairRDD_Reduceable[K, V](
 
   // Key enforcement needs to happen for both Reduceable and NonReduceable RDDs!
   def enforceKeys(output : Seq[(K, Double)], keys : Seq[K]) : Seq[(K, Double)] = {
-    // Use sets to randomize order
-    val expectedKeys = keys.toSet
-    val outputSet = output.toSet
+    if (Laplace.enabled) {
+      // Use sets to randomize order
+      val expectedKeys = keys.toSet
+      val outputSet = output.toSet
 
-    // First get rid of all keys that are not expected
-    val matcher = Utils.keyMatch(expectedKeys) _
-    val trimmedOutputSet : Set[(K, Double)] = outputSet.filter(matcher)
+      // First get rid of all keys that are not expected
+      val matcher = Utils.keyMatch(expectedKeys) _
+      val trimmedOutputSet : Set[(K, Double)] = outputSet.filter(matcher)
 
-    // Then add any keys that are expected but are missing
-    val outputKeys = trimmedOutputSet.map(x => x._1)
-    val missingKeys = expectedKeys.diff(outputKeys)
-    val missingOutputSet : Set[(K, Double)] = missingKeys.map(x => (x, 0.0))
-    val finalOutputSet = trimmedOutputSet ++ missingOutputSet
+      // Then add any keys that are expected but are missing
+      val outputKeys = trimmedOutputSet.map(x => x._1)
+      val missingKeys = expectedKeys.diff(outputKeys)
+      val missingOutputSet : Set[(K, Double)] = missingKeys.map(x => (x, 0.0))
+      val finalOutputSet = trimmedOutputSet ++ missingOutputSet
 
-    // Finally convert back to Seq
-    finalOutputSet.toSeq
+      // Finally convert back to Seq
+      finalOutputSet.toSeq
+    } else {
+      output
+    }
   }
 
   def enforceAll(output : Seq[(K, Double)], enforcement : Pair_Enforcement[K]) : Seq[(K, Double)] = {
-    def keys = enforcement.keys
-    def ranges = enforcement.ranges
-    // Use sets to randomize order
-    val expectedKeys = keys.toSet
-    val outputSet = output.toSet
+    if (Laplace.enabled) {
+      def keys = enforcement.keys
+      def ranges = enforcement.ranges
+      // Use sets to randomize order
+      val expectedKeys = keys.toSet
+      val outputSet = output.toSet
 
-    // First get rid of all keys that are not expected
-    val matcher = Utils.keyMatch(expectedKeys) _
-    val trimmedOutputSet : Set[(K, Double)] = outputSet.filter(matcher)
+      // First get rid of all keys that are not expected
+      val matcher = Utils.keyMatch(expectedKeys) _
+      val trimmedOutputSet: Set[(K, Double)] = outputSet.filter(matcher)
 
-    // Then add any keys that are expected but are missing
-    // NOTE that unlike the keys-only enforcement, we use a random value in the range
-    val outputKeys = trimmedOutputSet.map(x => x._1)
-    val missingKeys = expectedKeys.diff(outputKeys)
-    val missingOutputSet : Set[(K, Double)] = missingKeys.map(x => (x, ranges(x).random()))
-    val finalOutputSet = trimmedOutputSet ++ missingOutputSet
+      // Then add any keys that are expected but are missing
+      // NOTE that unlike the keys-only enforcement, we use a random value in the range
+      val outputKeys = trimmedOutputSet.map(x => x._1)
+      val missingKeys = expectedKeys.diff(outputKeys)
+      val missingOutputSet: Set[(K, Double)] = missingKeys.map(x => (x, ranges(x).random()))
+      val finalOutputSet = trimmedOutputSet ++ missingOutputSet
 
-    // Finally convert back to Seq
-    val finalOutputSeq = finalOutputSet.toSeq
+      // Finally convert back to Seq
+      val finalOutputSeq = finalOutputSet.toSeq
 
-    def enforcedOutput = finalOutputSeq.map(elem => {
-      def range = ranges(elem._1)
-      (elem._1, range.enforce(elem._2))
-    })
-    enforcedOutput
+      def enforcedOutput = finalOutputSeq.map(elem => {
+        def range = ranges(elem._1)
+        (elem._1, range.enforce(elem._2))
+      })
+      enforcedOutput
+    } else {
+      output
+    }
   }
 }
 
