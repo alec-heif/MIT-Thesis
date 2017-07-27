@@ -7,52 +7,146 @@ object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
     for (exp_num <- 1 to 4) {
-      JobRunner.run_lap(
-        exp_name="AOL_Avg",
-        file_name="/aol/aol_dataset.csv",
-        exp_num,
-        f=run_aol
-      )
-      val name = "AOL_Avg: /aol/aol_dataset.csv, p=false, h=true, n=" + exp_num
-      val sc = new SparkContext(new SparkConf().setAppName(name))
-      val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
-      val queries = rdd.map(x => x.split("\t")(1))
-      val words = queries.distinct().flatMap(x => x.split(" "))
-      val mac = words.filter(x => x.equals("mac")).count()
-      val pc = words.filter(x => x.equals("pc")).count()
-      println("ACTUAL: mac=" + mac + ", pc=" + pc)
-      sc.stop()
+      aol_spark_unoptimized()
+      aol_sparklap_unoptimized()
+      aol_spark_optimized()
+      aol_sparklap_optimized()
     }
   }
 
-  def aol_line(line : String) = {
-    val fields =line.split("\t")
-    //ID:Int, query:String, date:String, hour:Int, min:Int,itemrank:Int, url:String
-    val ID=fields(0)
-    val query=fields(1)
-    val date=fields(2)
-    if (fields.length == 5) {
-      var rank = 0
-      try {
-        rank = fields(3).toInt
-      } catch {
-        case n : NumberFormatException => println(line)
-      }
-      val url=fields(4)
-      (ID,query,date,rank,url)
-    } else {
-      (ID,query,date, 0, "")
-    }
+  def aol_spark_unoptimized() : Unit = {
+    // Names of words that you want to compare
+    val first_word = "mac"
+    val second_word = "pc"
+
+    val query_name = "AOL Word Occurrences"
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+
+    val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
+
+    // Select only the second column (the query)
+    val queries = rdd.map(x => x.split("\t")(1))
+
+    // Get unique queries and split into space-separated words
+    val words = queries.distinct().flatMap(x => x.split(" "))
+
+    // Find word counts
+    val first_count = words.filter(x => x.equals(first_word)).count()
+    val second_count = words.filter(x => x.equals(second_word)).count()
+
+    println(first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    sc.stop()
   }
 
-  def run_aol(rdd : Lap_RDD[String], name : String) : Unit = {
-    val lines = rdd.map(aol_line)
-    val unique_searches = lines.map(x => x._2).distinct()
-    val unique_words = unique_searches.groupByMulti(x => x.split(" ").map(y => (y, 1)), 30).setKeys(List("mac", "pc"))
-    val mac_count = unique_words.get("mac").count()
-    val pc_count = unique_words.get("pc").count()
-    println("FAKE: mac=" + mac_count + ", pc=" + pc_count)
+  def aol_spark_optimized() : Unit = {
+    // Names of words that you want to compare
+    val first_word = "mac"
+    val second_word = "pc"
+
+    val query_name = "AOL Word Occurrences"
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+
+    val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
+
+    // Select query
+    val queries = rdd.map(x => x.split("\t")(1))
+
+    // Remove irrelevant queries
+    val filtered_queries = queries.filter(x => x.contains(first_word) || x.contains(second_word))
+
+    // Get unique queries and split into words
+    val words = filtered_queries.distinct().flatMap(x => x.split(" "))
+
+    // Find word counts
+    val first_count = words.filter(x => x.equals(first_word)).count()
+    val second_count = words.filter(x => x.equals(second_word)).count()
+
+    println("ACTUAL: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    sc.stop()
   }
+
+  def aol_sparklap_unoptimized() : Unit = {
+    // Names of words that you want to compare
+    val first_word = "mac"
+    val second_word = "pc"
+
+    val query_name = "AOL Word Occurrences"
+    val sc = new PrivateSparkContext(query_name)
+
+    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+    // Select query
+    val queries = rdd.map(x => x.split("\t")(1))
+
+    // Get unique queries
+    val unique_searches = queries.distinct()
+
+    // Split into words
+    // We choose 30 as maximum number of outputs per input
+    val unique_words = unique_searches
+      .groupByMulti(x => x.split(" ").map(y => (y, 1)), 30)
+      .setKeys(List(first_word, second_word))
+
+    // Find word counts
+    val first_count = unique_words.get(first_word).count()
+    val second_count = unique_words.get(second_word).count()
+
+    println("PRIVATE: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    sc.stop()
+  }
+
+  def aol_sparklap_optimized() : Unit = {
+    // Names of words that you want to compare
+    val first_word = "mac"
+    val second_word = "pc"
+
+    val query_name = "AOL Word Occurrences"
+    val sc = new PrivateSparkContext(query_name)
+
+    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+    // Select query
+    val queries = rdd.map(x => x.split("\t")(1))
+
+    // Remove irrelevant queries
+    val filtered_queries = queries.filter(x => x.contains(first_word) || x.contains(second_word))
+
+    // Get unique queries
+    val unique_searches = filtered_queries.distinct()
+
+    // Split into words
+    // We choose 30 as maximum number of outputs per input
+    val unique_words = unique_searches
+      .groupByMulti(x => x.split(" ").map(y => (y, 1)), 30)
+      .setKeys(List(first_word, second_word))
+
+    // Find word counts
+    val first_count = unique_words.get(first_word).count()
+    val second_count = unique_words.get(second_word).count()
+
+    println("PRIVATE: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    sc.stop()
+  }
+
+//  def aol_line(line : String) = {
+//    val fields =line.split("\t")
+//    //ID:Int, query:String, date:String, hour:Int, min:Int,itemrank:Int, url:String
+//    val ID=fields(0)
+//    val query=fields(1)
+//    val date=fields(2)
+//    if (fields.length == 5) {
+//      var rank = 0
+//      try {
+//        rank = fields(3).toInt
+//      } catch {
+//        case n : NumberFormatException => println(line)
+//      }
+//      val url=fields(4)
+//      (ID,query,date,rank,url)
+//    } else {
+//      (ID,query,date, 0, "")
+//    }
+//  }
 
 //  def run_netflix(rdd : Lap_RDD[String]) : Unit = {
 //    println("Total Ratings: " + rdd.count().toLong + "\n")
