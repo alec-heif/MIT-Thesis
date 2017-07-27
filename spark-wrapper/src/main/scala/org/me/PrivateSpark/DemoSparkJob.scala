@@ -34,7 +34,7 @@ object DemoSparkJob extends Serializable {
     val first_count = words.filter(x => x.equals(first_word)).count()
     val second_count = words.filter(x => x.equals(second_word)).count()
 
-    println(first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
     sc.stop()
   }
 
@@ -61,7 +61,7 @@ object DemoSparkJob extends Serializable {
     val first_count = words.filter(x => x.equals(first_word)).count()
     val second_count = words.filter(x => x.equals(second_word)).count()
 
-    println("ACTUAL: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
     sc.stop()
   }
 
@@ -91,7 +91,7 @@ object DemoSparkJob extends Serializable {
     val first_count = unique_words.get(first_word).count()
     val second_count = unique_words.get(second_word).count()
 
-    println("PRIVATE: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
     sc.stop()
   }
 
@@ -124,7 +124,7 @@ object DemoSparkJob extends Serializable {
     val first_count = unique_words.get(first_word).count()
     val second_count = unique_words.get(second_word).count()
 
-    println("PRIVATE: " + first_word + ": " + first_count + ", " + second_word + ", " + second_count)
+    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
     sc.stop()
   }
 
