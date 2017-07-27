@@ -7,19 +7,19 @@ object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
     for (exp_num <- 1 to 4) {
-      aol_spark_unoptimized()
-      aol_sparklap_unoptimized()
-      aol_spark_optimized()
-      aol_sparklap_optimized()
+      aol_spark_unoptimized(exp_num)
+      aol_sparklap_unoptimized(exp_num)
+      aol_spark_optimized(exp_num)
+      aol_sparklap_optimized(exp_num)
     }
   }
 
-  def aol_spark_unoptimized() : Unit = {
+  def aol_spark_unoptimized(exp_num : Int) : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
     val second_word = "pc"
 
-    val query_name = "AOL Word Occurrences"
+    val query_name = "aol_spark_unoptimized_" + exp_num
     val sc = new SparkContext(new SparkConf().setAppName(query_name))
 
     val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
@@ -38,12 +38,12 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def aol_spark_optimized() : Unit = {
+  def aol_spark_optimized(exp_num : Int) : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
     val second_word = "pc"
 
-    val query_name = "AOL Word Occurrences"
+    val query_name = "aol_spark_optimized_" + exp_num
     val sc = new SparkContext(new SparkConf().setAppName(query_name))
 
     val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
@@ -65,12 +65,12 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def aol_sparklap_unoptimized() : Unit = {
+  def aol_sparklap_unoptimized(exp_num : Int) : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
     val second_word = "pc"
 
-    val query_name = "AOL Word Occurrences"
+    val query_name = "aol_sparklap_unoptimized_" + exp_num
     val sc = new PrivateSparkContext(query_name)
 
     val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
@@ -95,12 +95,12 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def aol_sparklap_optimized() : Unit = {
+  def aol_sparklap_optimized(exp_num : Int) : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
     val second_word = "pc"
 
-    val query_name = "AOL Word Occurrences"
+    val query_name = "aol_sparklap_optimized_" + exp_num
     val sc = new PrivateSparkContext(query_name)
 
     val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
