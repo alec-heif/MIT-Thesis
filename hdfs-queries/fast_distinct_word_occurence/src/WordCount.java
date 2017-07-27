@@ -84,40 +84,44 @@ public class WordCount {
     }
 
     public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
 
-        Job distinctJob = Job.getInstance(conf, "distinct word");
-        distinctJob.setJarByClass(WordCount.class);
+        for (int i = 1; i <= 4; i++) {
+            Configuration conf = new Configuration();
+            Job distinctJob = Job.getInstance(conf, "distinct word");
+            distinctJob.setJarByClass(WordCount.class);
 
-        distinctJob.setMapperClass(DistinctMapper.class);
-        distinctJob.setReducerClass(DistinctReducer.class);
+            distinctJob.setMapperClass(DistinctMapper.class);
+            distinctJob.setReducerClass(DistinctReducer.class);
 
-        distinctJob.setOutputKeyClass(Text.class);
-        distinctJob.setOutputValueClass(NullWritable.class);
+            distinctJob.setOutputKeyClass(Text.class);
+            distinctJob.setOutputValueClass(NullWritable.class);
 
-        distinctJob.setInputFormatClass(TextInputFormat.class);
-        distinctJob.setOutputFormatClass(TextOutputFormat.class);
+            distinctJob.setInputFormatClass(TextInputFormat.class);
+            distinctJob.setOutputFormatClass(TextOutputFormat.class);
 
-        FileInputFormat.addInputPath(distinctJob, new Path(args[0]));
-        FileOutputFormat.setOutputPath(distinctJob, new Path(args[1]));
+            FileInputFormat.addInputPath(distinctJob, new Path(args[0]));
+            FileOutputFormat.setOutputPath(distinctJob, new Path(args[1] + "_" + i));
 
-        distinctJob.waitForCompletion(true);
+            distinctJob.waitForCompletion(true);
 
-        Job countJob = Job.getInstance(conf, "word count");
-        countJob.setJarByClass(WordCount.class);
+            Job countJob = Job.getInstance(conf, "word count");
+            countJob.setJarByClass(WordCount.class);
 
-        countJob.setMapperClass(WordCountMapper.class);
-        countJob.setReducerClass(WordCountReducer.class);
+            countJob.setMapperClass(WordCountMapper.class);
+            countJob.setReducerClass(WordCountReducer.class);
 
-        countJob.setOutputKeyClass(Text.class);
-        countJob.setOutputValueClass(LongWritable.class);
+            countJob.setOutputKeyClass(Text.class);
+            countJob.setOutputValueClass(LongWritable.class);
 
-        countJob.setInputFormatClass(TextInputFormat.class);
-        countJob.setOutputFormatClass(TextOutputFormat.class);
+            countJob.setInputFormatClass(TextInputFormat.class);
+            countJob.setOutputFormatClass(TextOutputFormat.class);
 
-        FileInputFormat.addInputPath(countJob, new Path(args[1]));
-        FileOutputFormat.setOutputPath(countJob, new Path(args[2]));
+            FileInputFormat.addInputPath(countJob, new Path(args[1] + "_" + i));
+            FileOutputFormat.setOutputPath(countJob, new Path(args[2] + "_" + i));
 
-        System.exit(countJob.waitForCompletion(true) ? 0 : 1);
+            countJob.waitForCompletion(true);
+        }
+
+        System.exit(0);
     }
 }
