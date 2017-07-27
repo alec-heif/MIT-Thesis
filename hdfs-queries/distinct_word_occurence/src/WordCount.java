@@ -70,12 +70,14 @@ public class WordCount {
                 throws IOException, InterruptedException {
 
                 long sum = 0;
-                for (LongWritable val : values) {
-                    sum += val.get();
+                String keyName = key.toString();
+                if (keyName.equals("mac") || keyName.equals("pc")) {
+                    for (LongWritable val : values) {
+                        sum += val.get();
+                    }
+                    result.set(sum);
+                    context.write(key, result);
                 }
-                result.set(sum);
-                context.write(key, result);
-
             }
     }
 
