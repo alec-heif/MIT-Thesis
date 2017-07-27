@@ -18,13 +18,13 @@ class PrivateSparkContext (name : String) {
 
   def budget = _budget
 
-  def getLapRDD(path: String, is_private : Boolean) : Lap_RDD[String] = {
+  def getLapRDD(path: String, is_private : Boolean = true) : Lap_RDD[String] = {
     val lap_enabled = if (is_private) true else false
     Laplace.setEnabled(lap_enabled)
     RDDCreator.create(ctx.textFile(path), new QueryInfo(budget), Single_Enforcement.default())
   }
 
-  def getSarRDD(path: String, is_private : Boolean) : SAR_RDD[String] = {
+  def getSarRDD(path: String, is_private : Boolean = true) : SAR_RDD[String] = {
     val base = ctx.textFile(path).cache()
     if (is_private) {
       Laplace.setEnabled(true)
