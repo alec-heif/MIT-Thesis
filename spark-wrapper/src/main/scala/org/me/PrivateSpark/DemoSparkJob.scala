@@ -6,44 +6,49 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    for (exp_num <- 1 to 4) {
-      aol_spark_unoptimized(exp_num)
-      aol_sparklap_unoptimized(exp_num)
-      aol_spark_optimized(exp_num)
-      aol_sparklap_optimized(exp_num)
-    }
+      netflix_average_actual()
+      netflix_average_private()
   }
 
-  def aol_spark_unoptimized(exp_num : Int) : Unit = {
+  def netflix_average_actual() : Unit = {
+      val query_name = "Netflix Average Actual"
+      val sc = new SparkContext(new SparkConf().setAppName(query_name))
+      val rdd = sc.textFile("hdfs:///datasets/netflix/result_all.csv")
+      val transformed_rdd = rdd.map(x => x.split(",")).filter(x => x(0).equals("2")).map(x => x(2).toDouble)
+      transformed_rdd.cache()
+
+      val avg_rating = transformed_rdd.mean()
+      val num_ratings = transformed_rdd.count()
+      println("act_count, " + num_ratings)
+      println("act_avg, " + avg_rating)
+
+      sc.stop()
+  }
+
+  def netflix_average_private() : Unit = {
+      val query_name = "Netflix Average Private"
+      val sc = new PrivateSparkContext(query_name)
+      val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+      val transformed_rdd = rdd.map(x => x.split(",")).filter(x => x(0).equals("2")).map(x => x(2).toDouble).setRange(new Range(0, 5))
+      transformed_rdd.cache()
+
+      for(i <- 1 to 10000) {
+          val num_ratings = transformed_rdd.count()
+          val avg_ratings = transformed_rdd.avg()
+          println("priv_count, " + num_ratings)
+          println("priv_avg, " + avg_ratings)
+      }
+
+      sc.stop()
+  }
+
+  def aol_compare_actual() : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
     val second_word = "pc"
 
-    val query_name = "aol_spark_unoptimized_" + exp_num
-    val sc = new SparkContext(new SparkConf().setAppName(query_name))
-
-    val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
-
-    // Select only the second column (the query)
-    val queries = rdd.map(x => x.split("\t")(1))
-
-    // Get unique queries and split into space-separated words
-    val words = queries.distinct().flatMap(x => x.split(" "))
-
-    // Find word counts
-    val first_count = words.filter(x => x.equals(first_word)).count()
-    val second_count = words.filter(x => x.equals(second_word)).count()
-
-    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
-    sc.stop()
-  }
-
-  def aol_spark_optimized(exp_num : Int) : Unit = {
-    // Names of words that you want to compare
-    val first_word = "mac"
-    val second_word = "pc"
-
-    val query_name = "aol_spark_optimized_" + exp_num
+    // val query_name = "aol_spark_optimized_" + exp_num
+    val query_name = "AOL Comparison Actual"
     val sc = new SparkContext(new SparkConf().setAppName(query_name))
 
     val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
@@ -65,6 +70,75 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
+  def aol_compare_private() : Unit = {
+      // Names of words that you want to compare
+      val first_word = "mac"
+      val second_word = "pc"
+
+      val query_name = "AOL Comparison Private"
+      val sc = new PrivateSparkContext(query_name)
+
+      val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+      // Select query
+      val queries = rdd.map(x => x.split("\t")(1))
+
+      // Remove irrelevant queries
+      val filtered_queries = queries.filter(x => x.contains(first_word) || x.contains(second_word))
+
+      // Get unique queries
+      val unique_searches = filtered_queries.distinct()
+
+      // Split into words
+      // We choose 30 as maximum number of outputs per input
+      val unique_words = unique_searches
+      .groupByMulti(x => x.split(" ").map(y => (y, 1)), 30)
+      .setKeys(List(first_word, second_word))
+
+      // Find word counts
+      val first_count = unique_words.get(first_word).count()
+      val second_count = unique_words.get(second_word).count()
+
+      println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
+      sc.stop()
+  }
+
+  /**************************** End Demo ***********************/
+
+
+
+
+
+
+
+
+
+
+
+  def aol_spark_unoptimized(exp_num : Int) : Unit = {
+      // Names of words that you want to compare
+      val first_word = "mac"
+          val second_word = "pc"
+
+          val query_name = "aol_spark_unoptimized_" + exp_num
+          val sc = new SparkContext(new SparkConf().setAppName(query_name))
+
+          val rdd = sc.textFile("hdfs:///datasets/aol/aol_dataset.csv")
+
+          // Select only the second column (the query)
+          val queries = rdd.map(x => x.split("\t")(1))
+
+          // Get unique queries and split into space-separated words
+          val words = queries.distinct().flatMap(x => x.split(" "))
+
+          // Find word counts
+          val first_count = words.filter(x => x.equals(first_word)).count()
+          val second_count = words.filter(x => x.equals(second_word)).count()
+
+          println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
+          sc.stop()
+  }
+
   def aol_sparklap_unoptimized(exp_num : Int) : Unit = {
     // Names of words that you want to compare
     val first_word = "mac"
@@ -80,39 +154,6 @@ object DemoSparkJob extends Serializable {
 
     // Get unique queries
     val unique_searches = queries.distinct()
-
-    // Split into words
-    // We choose 30 as maximum number of outputs per input
-    val unique_words = unique_searches
-      .groupByMulti(x => x.split(" ").map(y => (y, 1)), 30)
-      .setKeys(List(first_word, second_word))
-
-    // Find word counts
-    val first_count = unique_words.get(first_word).count()
-    val second_count = unique_words.get(second_word).count()
-
-    println(query_name + ": " + first_word + "=" + first_count + ", " + second_word + "=" + second_count)
-    sc.stop()
-  }
-
-  def aol_sparklap_optimized(exp_num : Int) : Unit = {
-    // Names of words that you want to compare
-    val first_word = "mac"
-    val second_word = "pc"
-
-    val query_name = "aol_sparklap_optimized_" + exp_num
-    val sc = new PrivateSparkContext(query_name)
-
-    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
-
-    // Select query
-    val queries = rdd.map(x => x.split("\t")(1))
-
-    // Remove irrelevant queries
-    val filtered_queries = queries.filter(x => x.contains(first_word) || x.contains(second_word))
-
-    // Get unique queries
-    val unique_searches = filtered_queries.distinct()
 
     // Split into words
     // We choose 30 as maximum number of outputs per input
