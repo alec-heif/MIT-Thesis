@@ -16,9 +16,7 @@ object Winsorize extends Serializable {
     def utility_function(element : (Int, Double)) = {
       val (index, diff) = element
       def exponent =  math.exp(-1 * epsilon * math.abs(index - quantile * k))
-      // TODO investigate putting back in diff component
       (index, diff * exponent)
-//      (index, exponent)
     }
     val utilities = diffed_data.map(utility_function)
 
