@@ -20,13 +20,13 @@ object DemoSparkJob extends Serializable {
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
-    val split_rdd = rdd.map(x => x.split(","))
+    val split_rdd = rdd.map(x => x.split(",")).map(x => (x(0).toInt, x(2).toDouble))
     split_rdd.cache()
 
-    val movie_ids = 1 to 10
+    val movie_ids = 1 to 100
 
     for (i <- movie_ids) {
-      val i_rdd = split_rdd.filter(x => x(0).toInt == i).map(x => x(2).toDouble).setRange(new Range(0, 5))
+      val i_rdd = split_rdd.filter(x => x._1 == i).map(x => x._2).setRange(new Range(0, 5))
       val i_sum = i_rdd.sum()
       val i_count = i_rdd.count()
       println(i + ", " + i_count + ", " + i_sum / i_count)
@@ -43,17 +43,14 @@ object DemoSparkJob extends Serializable {
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
-    split_rdd.cache()
+    val movie_ids = 1 to 100
 
-    val movie_ids = 1 to 10
+    val i_rdd = split_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
+    i_rdd.cache()
 
     for (i <- movie_ids) {
-      val i_rdd = split_rdd.setKeys(i to i).setRangeForKeys(i to i, new Range(0, 5))
-      val sums = i_rdd.kSum()
-      val sum : Double = sums(0)._2
-
-      val counts = i_rdd.kCount()
-      val count = counts(0)._2
+      val sum = i_rdd.get(i).sum()
+      val count = i_rdd.get(i).count()
 
       println(i + ", " + count + ", " + sum / count)
     }
