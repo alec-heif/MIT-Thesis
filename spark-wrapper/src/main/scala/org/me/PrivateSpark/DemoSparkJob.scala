@@ -38,7 +38,7 @@ object DemoSparkJob extends Serializable {
 
   def covariance_matrix_middle() : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
-    val query_name = "Covariance Matrix Fast"
+    val query_name = "Covariance Matrix Middle"
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
