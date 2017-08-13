@@ -6,8 +6,31 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-      netflix_average_actual()
-      netflix_average_private()
+    covariance_matrix()
+  }
+
+  def covariance_matrix() : Unit = {
+    // Movie_ID, User_ID, Rating, YYYY-MM-DD
+    val query_name = "Covariance Matrix"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
+
+    val split_rdd = rdd.map(x => x.split(","))
+    split_rdd.cache()
+
+    val movie_ids = 1 to 100
+
+    for (i <- movie_ids) {
+      val i_rdd = split_rdd.filter(x => x(0).toInt == i).map(x => x(2).toDouble).setRange(new Range(0, 5))
+      println(i + ", " + i_rdd.count() + ", " + i_rdd.avg())
+    }
+
+    sc.stop()
+
+    // val grouped_rdd = split_rdd.groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
+    // val enforced_rdd = grouped_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
+    // enforced_rdd.cache()
+
   }
 
   def netflix_average_actual() : Unit = {

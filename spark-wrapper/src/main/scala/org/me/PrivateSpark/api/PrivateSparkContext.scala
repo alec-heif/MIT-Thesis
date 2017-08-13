@@ -11,7 +11,7 @@ import scala.collection.parallel.{ParSet, ParSeq}
 class PrivateSparkContext (name : String) {
   // TODO load this from a config file defined on the system
   private val EPSILON = 0.1
-  private val SCALE = 100
+  private val SCALE = 100000
 
   private val _budget = new Budget(EPSILON, SCALE)
   private val ctx = new SparkContext(new SparkConf().setAppName(name))
