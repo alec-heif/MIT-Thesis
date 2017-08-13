@@ -13,6 +13,42 @@ object DemoSparkJob extends Serializable {
     }
   }
 
+  def median_hash() : Unit = {
+    val query_name = "Median Hash"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+    val hash_width = 1000
+    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble)
+
+    val median_hash = hashed_rdd.median()
+    println("Median: " + median_hash)
+  }
+
+  def average_hash_sam() : Unit = {
+    val query_name = "Average Hash SparkSAM"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+    val hash_width = 1000
+    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble)
+
+    val average_hash = hashed_rdd.average()
+    println("SAM Average: " + average_hash)
+  }
+
+  def average_hash_lap() : Unit = {
+    val query_name = "Average Hash SparkLAP"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
+
+    val hash_width = 1000
+    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble).setRange(new Range(0, hash_width))
+
+    val average_hash = hashed_rdd.avg()
+    println("SAM Average: " + average_hash)
+  }
+
   def covariance_matrix_slow() : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Slow"
