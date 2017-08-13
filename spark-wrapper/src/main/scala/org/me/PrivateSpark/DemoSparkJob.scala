@@ -22,7 +22,9 @@ object DemoSparkJob extends Serializable {
 
     for (i <- movie_ids) {
       val i_rdd = split_rdd.filter(x => x(0).toInt == i).map(x => x(2).toDouble).setRange(new Range(0, 5))
-      println(i + ", " + i_rdd.count() + ", " + i_rdd.avg())
+      val i_sum = i_rdd.sum()
+      val i_count = i_rdd.count()
+      println(i + ", " + i_count + ", " + i_sum / i_count)
     }
 
     sc.stop()
