@@ -86,7 +86,7 @@ class Lap_PairRDD_Reduceable[K, V](
     def ranges = enforcement.ranges
 
     val doubleDelegate = delegate.asInstanceOf[RDD[(K, Double)]]
-    val reducibleDelegate = new PairRDDFunctions(doubleDelegate)
+    // val reducibleDelegate = new PairRDDFunctions(doubleDelegate)
 
     var sensitivities = Map.empty[K, Double]
     for (k <- keys) {
@@ -97,7 +97,7 @@ class Lap_PairRDD_Reduceable[K, V](
 
     val scales = sensitivities.map(x => (x._1, x._2 / budget.epsilon))
 
-    val unenforcedOutput = reducibleDelegate.reduceByKey(_+ _).collect()
+    val unenforcedOutput = doubleDelegate.reduceByKey(_ + _).collect()
 
     val enforcedOutput = enforceAll(unenforcedOutput, enforcement)
 
