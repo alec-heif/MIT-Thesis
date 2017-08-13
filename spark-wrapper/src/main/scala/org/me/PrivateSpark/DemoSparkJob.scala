@@ -17,7 +17,7 @@ object DemoSparkJob extends Serializable {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Slow"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).map(x => (x(0).toInt, x(2).toDouble))
     split_rdd.cache()
@@ -62,7 +62,7 @@ object DemoSparkJob extends Serializable {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Fast"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
