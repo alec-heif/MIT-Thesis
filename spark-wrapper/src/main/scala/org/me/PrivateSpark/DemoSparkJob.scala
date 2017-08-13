@@ -67,7 +67,7 @@ object DemoSparkJob extends Serializable {
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
-    val movie_ids = 1 to 10
+    val movie_ids = 1 to 100
 
     val grouped = split_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
     val sums = grouped.kSum().groupBy(_._1).mapValues(x => x(0)._2)
