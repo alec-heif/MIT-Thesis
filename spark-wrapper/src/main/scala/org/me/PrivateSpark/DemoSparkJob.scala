@@ -6,11 +6,10 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    Laplace.setEnabled(false)
-    for (i <- 1 to 3) {
-      covariance_matrix_slow()
-      covariance_matrix_middle()
+    Laplace.setEnabled(true)
+    for (i <- 1 to 4) {
       covariance_matrix_fast()
+      covariance_matrix_slow()
     }
   }
 
@@ -18,12 +17,12 @@ object DemoSparkJob extends Serializable {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Slow"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).map(x => (x(0).toInt, x(2).toDouble))
     split_rdd.cache()
 
-    val movie_ids = 1 to 100
+    val movie_ids = 1 to 1000
 
     for (i <- movie_ids) {
       val i_rdd = split_rdd.filter(x => x._1 == i).map(x => x._2).setRange(new Range(0, 5))
@@ -63,19 +62,18 @@ object DemoSparkJob extends Serializable {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Fast"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
-    val movie_ids = 1 to 100
+    val movie_ids = 1 to 1000
 
     val grouped = split_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
-    val sums = grouped.kSum().groupBy(_._1).mapValues(x => x(0)._2)
-    val counts = grouped.kCount().groupBy(_._1).mapValues(x => x(0)._2)
+    val sums = grouped.kSum()
+    val counts = grouped.kCount()
 
-    for (i <- movie_ids) {
-      println(i + ", " + counts(i) + ", " + sums(i) / counts(i))
-    }
+    sums.foreach(x => println(x._1 + ", sum, " + x._2))
+    counts.foreach(x => println(x._1 + ", count, " + x._2))
 
     sc.stop()
 
