@@ -42,7 +42,7 @@ object DemoSparkJob extends Serializable {
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
-    val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2))
+    val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
     split_rdd.cache()
 
     val movie_ids = 1 to 10
@@ -68,7 +68,7 @@ object DemoSparkJob extends Serializable {
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
-    val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2))
+    val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
     val movie_ids = 1 to 10
 
