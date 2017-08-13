@@ -9,16 +9,16 @@ object DemoSparkJob extends Serializable {
     covariance_matrix()
   }
 
-  def covariance_matrix() : Unit = {
+  def covariance_matrix_slow() : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
-    val query_name = "Covariance Matrix"
+    val query_name = "Covariance Matrix Slow"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_1000.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(","))
     split_rdd.cache()
 
-    val movie_ids = 1 to 100
+    val movie_ids = 1 to 1000
 
     for (i <- movie_ids) {
       val i_rdd = split_rdd.filter(x => x(0).toInt == i).map(x => x(2).toDouble).setRange(new Range(0, 5))
@@ -32,6 +32,32 @@ object DemoSparkJob extends Serializable {
     // val grouped_rdd = split_rdd.groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
     // val enforced_rdd = grouped_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
     // enforced_rdd.cache()
+
+  }
+
+  def covariance_matrix_fast() : Unit = {
+      // Movie_ID, User_ID, Rating, YYYY-MM-DD
+      val query_name = "Covariance Matrix Fast"
+      val sc = new PrivateSparkContext(query_name)
+      val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+
+      val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2))
+      split_rdd.cache()
+
+      val movie_ids = 1 to 1000
+
+      for (i <- movie_ids) {
+          val i_rdd = split_rdd.setKeys(i to i).setRangeForKeys(i to i, new Range(0, 5))
+          val i_sum = i_rdd.kAvg()(i)
+          val i_count = i_rdd.kCount()(i)
+          println(i + ", " + i_count + ", " + i_sum / i_count)
+      }
+
+      sc.stop()
+
+          // val grouped_rdd = split_rdd.groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
+          // val enforced_rdd = grouped_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
+          // enforced_rdd.cache()
 
   }
 
