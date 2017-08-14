@@ -6,54 +6,135 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    Laplace.setEnabled(true)
-    for (i <- 1 to 4) {
-      covariance_matrix_fast()
+    for (i <- 1 to 5) {
       covariance_matrix_slow()
+      covariance_matrix_fast()
     }
   }
 
-  def median_hash() : Unit = {
-    val query_name = "Median Hash"
+  def median_netflix_rating(is_private : Boolean) : Unit = {
+    val mod = if (is_private) "Private" else "Actual"
+    val query_name = "Median Rating " + mod
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv")
+    val rdd = sc.getSarRDD("hdfs:///datasets/netflix/large/result_all.csv", is_private)
 
-    val hash_width = 1000
-    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble)
+    val hashed_rdd = rdd.map(x => {
+      val line = x.split(",")
+      val rating = line(2).toDouble
+      rating
+    })
 
     val median_hash = hashed_rdd.median()
-    println("Median: " + median_hash)
+    println(query_name + ": " + median_hash)
+
+    sc.stop()
+  }
+
+  def median_netflix_hash_actual(hash_width : Long) : Unit = {
+    val query_name = "Median Hash Actual " + hash_width
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/netflix/large/result_all.csv", false)
+
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    })
+
+    val median_hash = hashed_rdd.median()
+    println("Median Actual " + hash_width + ": " + median_hash)
+
+    sc.stop()
+  }
+
+  def median_netflix_hash_priv(hash_width : Long) : Unit = {
+    val query_name = "Median Hash Private " + hash_width
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/netflix/large/result_all.csv", true)
+
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    })
+
+    val median_hash = hashed_rdd.median()
+    println("Median Private " + hash_width + ": " + median_hash)
+
+    sc.stop()
+  }
+
+  def median_hash_priv() : Unit = {
+    val query_name = "Median Hash Private"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv", true)
+
+    val hash_width = 1000000
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    })
+
+    val median_hash = hashed_rdd.median()
+    println("Median Private: " + median_hash)
+
+    sc.stop()
+  }
+
+  def median_hash_actual() : Unit = {
+    val query_name = "Median Hash Actual"
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv", false)
+
+    val hash_width = 1000000
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    })
+
+    val median_hash = hashed_rdd.median()
+    println("Median Actual: " + median_hash)
+
+    sc.stop()
   }
 
   def average_hash_sam() : Unit = {
     val query_name = "Average Hash SparkSAM"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv")
+    val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv", true)
 
-    val hash_width = 1000
-    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble)
+    val hash_width = 1000000
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    })
 
     val average_hash = hashed_rdd.average()
     println("SAM Average: " + average_hash)
+
+    sc.stop()
   }
 
   def average_hash_lap() : Unit = {
     val query_name = "Average Hash SparkLAP"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/aol/aol_dataset.csv", true)
 
-    val hash_width = 1000
-    val hashed_rdd = rdd.map(x => (x.hashCode() % hash_width).toDouble).setRange(new Range(0, hash_width))
+    val hash_width = 1000000
+    val hashed_rdd = rdd.map(x => {
+      val result = math.abs(x.hashCode) % hash_width
+      result.toDouble
+    }).setRange(new Range(0, hash_width))
 
     val average_hash = hashed_rdd.avg()
-    println("SAM Average: " + average_hash)
+    println("LAP Average: " + average_hash)
+
+    sc.stop()
   }
 
   def covariance_matrix_slow() : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Slow"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).map(x => (x(0).toInt, x(2).toDouble))
     split_rdd.cache()
@@ -98,7 +179,7 @@ object DemoSparkJob extends Serializable {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
     val query_name = "Covariance Matrix Fast"
     val sc = new PrivateSparkContext(query_name)
-    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/result_all.csv")
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
