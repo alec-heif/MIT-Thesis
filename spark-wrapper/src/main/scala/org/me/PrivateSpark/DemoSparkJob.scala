@@ -7,11 +7,66 @@ object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
     for (i <- 1 to 5) {
-      covariance_matrix_slow()
-      covariance_matrix_fast()
+      average_netflix_rating(i)
+      average_netflix_rating_cached(i)
+    }
+    for (i <- 1 to 5) {
+      average_netflix_rating_giant(i)
+      average_netflix_rating_giant_cached(i)
     }
   }
 
+  def average_netflix_rating_giant_cached(i : Int) : Unit = {
+    val query_name = "Average Rating Giant Cached: " + i
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/giant/result_giant.csv", true)
+    rdd.cache()
+
+    for (j <- 1 to 10) {
+      val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
+      println(query_name + ", i=" + j + ", " + ratings.avg())
+    }
+    sc.stop()
+  }
+
+  def average_netflix_rating_giant(i : Int) : Unit = {
+    val query_name = "Average Rating Giant: " + i
+
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/giant/result_giant.csv", true)
+  
+    val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
+    println(ratings.avg())
+  
+    sc.stop()
+  }
+
+  def average_netflix_rating_cached(i : Int) : Unit = {
+    val query_name = "Average Rating Cached: " + i
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv", true)
+    rdd.cache()
+
+    for (j <- 1 to 10) {
+        val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
+        println(query_name + ", i=" + j + ", " + ratings.avg())
+    }
+    sc.stop()
+  }
+
+  def average_netflix_rating(i : Int) : Unit = {
+    val query_name = "Average Rating: " + i
+
+    val sc = new PrivateSparkContext(query_name)
+    val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv", true)
+
+    val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
+    println(ratings.avg())
+
+    sc.stop()
+  }
+
+  
   def median_netflix_rating(is_private : Boolean) : Unit = {
     val mod = if (is_private) "Private" else "Actual"
     val query_name = "Median Rating " + mod
@@ -130,16 +185,16 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def covariance_matrix_slow() : Unit = {
+  def covariance_matrix_slow(range : Int) : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
-    val query_name = "Covariance Matrix Slow"
+    val query_name = "Covariance Matrix Slow " + range
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).map(x => (x(0).toInt, x(2).toDouble))
     split_rdd.cache()
 
-    val movie_ids = 1 to 1000
+    val movie_ids = 1 to range
 
     for (i <- movie_ids) {
       val i_rdd = split_rdd.filter(x => x._1 == i).map(x => x._2).setRange(new Range(0, 5))
@@ -175,15 +230,15 @@ object DemoSparkJob extends Serializable {
 
   }
 
-  def covariance_matrix_fast() : Unit = {
+  def covariance_matrix_fast(range : Int) : Unit = {
     // Movie_ID, User_ID, Rating, YYYY-MM-DD
-    val query_name = "Covariance Matrix Fast"
+    val query_name = "Covariance Matrix Fast " + range
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv")
 
     val split_rdd = rdd.map(x => x.split(",")).groupBy(x => x(0).toInt).mapValues(x => x(2).toDouble)
 
-    val movie_ids = 1 to 1000
+    val movie_ids = 1 to range
 
     val grouped = split_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
     val sums = grouped.kSum()
