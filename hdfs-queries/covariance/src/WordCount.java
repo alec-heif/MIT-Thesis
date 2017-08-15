@@ -75,7 +75,7 @@ public class WordCount {
     }
 
     public static void main(String[] args) throws Exception {
-        for (int i = 1; i <= 100; i++) {
+        for (int i = 1; i <= 10; i++) {
             Configuration conf = new Configuration();
             conf.set("movie_id", Integer.toString(i));
 
