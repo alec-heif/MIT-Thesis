@@ -64,11 +64,11 @@ public class WordCount {
     }
 
     public static void main(String[] args) throws Exception {
-        for(int i = 2; i <= 5; i++) {
+        for(int i = 1; i <= 1; i++) {
             for (int j = 1; j <= 10; j++) {
                 Configuration conf = new Configuration();
 
-                Job covarianceJob = Job.getInstance(conf, "netflix average regular: " + i + ", " + j);
+                Job covarianceJob = Job.getInstance(conf, "netflix average giant: " + i + ", " + j);
                 covarianceJob.setJarByClass(WordCount.class);
 
                 covarianceJob.setMapperClass(RatingMapper.class);

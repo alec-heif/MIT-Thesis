@@ -3,7 +3,7 @@
 cd src
 hdfs dfs -rm -r /mr_out
 
-hadoop jar wc.jar WordCount /datasets/netflix/large /mr_out
+hadoop jar wc.jar WordCount /datasets/netflix/giant /mr_out
 cd ..
 rm -rf out/*
 mkdir -p out

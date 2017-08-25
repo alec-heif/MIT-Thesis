@@ -25,7 +25,6 @@ public class WordCount {
 
             private IntWritable movieOut = new IntWritable();
             private IntWritable ratingOut = new IntWritable();
-            private static int currMovie;
 
             @Override
             public void map(Object key, Text value, Context context) 
@@ -35,18 +34,11 @@ public class WordCount {
                 String[] parts = line.split(",");
                 int movieId = Integer.parseInt(parts[0]);
                 int rating = Integer.parseInt(parts[2]);
-                if (movieId == currMovie) {
+                if (movieId <= 1000) {
                     movieOut.set(movieId);
                     ratingOut.set(rating);
                     context.write(movieOut, ratingOut);
                 }
-            }
-
-            @Override
-            public void setup(Context ctx) throws IOException, InterruptedException {
-                Configuration conf = ctx.getConfiguration();
-                int movie_id = Integer.parseInt(conf.get("movie_id"));
-                currMovie = movie_id;
             }
 
     }
@@ -75,11 +67,10 @@ public class WordCount {
     }
 
     public static void main(String[] args) throws Exception {
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 5; i++) {
             Configuration conf = new Configuration();
-            conf.set("movie_id", Integer.toString(i));
 
-            Job covarianceJob = Job.getInstance(conf, "covariance job " + i);
+            Job covarianceJob = Job.getInstance(conf, "multiple averages job " + i);
             covarianceJob.setJarByClass(WordCount.class);
 
             covarianceJob.setMapperClass(RatingMapper.class);
