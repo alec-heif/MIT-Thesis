@@ -78,7 +78,6 @@ class SAR_RDD[T](_sc : SparkContext, _partitions : ParSet[RDD[T]], _numPartition
     val w_samples = samples.map(winsorize)
     val w_mean = w_samples.sum / w_samples.length
     val scale = math.abs(upper - lower) / (2 * epsilon * w_samples.length)
-    println("Upper: " + upper + ", Lower: " + lower)
     w_mean + Laplace.draw(scale)
 //     w_mean
   }

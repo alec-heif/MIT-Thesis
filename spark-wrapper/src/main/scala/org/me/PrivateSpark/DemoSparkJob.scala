@@ -6,25 +6,25 @@ import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    for (i <- 1 to 5) {
-      average_netflix_rating(i)
-      average_netflix_rating_cached(i)
-    }
-    for (i <- 1 to 5) {
-      average_netflix_rating_giant(i)
-      average_netflix_rating_giant_cached(i)
-    }
+    long_median_hash_priv()
   }
 
   def average_netflix_rating_giant_cached(i : Int) : Unit = {
     val query_name = "Average Rating Giant Cached: " + i
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/giant/result_giant.csv", true)
+
+    val start_time = System.currentTimeMillis()
+    var last_time = start_time
+
     rdd.cache()
 
     for (j <- 1 to 10) {
       val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
-      println(query_name + ", i=" + j + ", " + ratings.avg())
+      val avg = ratings.avg()
+      val curr_time = System.currentTimeMillis()
+      println("giant_average_rating_spark_lap, i, " + i + ", j, " + j + ", last, " + (curr_time - last_time) + ", total, " + (curr_time - start_time))
+      last_time = curr_time
     }
     sc.stop()
   }
@@ -45,11 +45,18 @@ object DemoSparkJob extends Serializable {
     val query_name = "Average Rating Cached: " + i
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getLapRDD("hdfs:///datasets/netflix/large/result_all.csv", true)
+
+    val start_time = System.currentTimeMillis()
+    var last_time = start_time
+
     rdd.cache()
 
     for (j <- 1 to 10) {
         val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble).setRange(new api.Range(0, 5))
-        println(query_name + ", i=" + j + ", " + ratings.avg())
+        val avg = ratings.avg()
+        val curr_time = System.currentTimeMillis()
+        println("i, " + i + ", j, " + j + ", last, " + (curr_time - last_time) + ", total, " + (curr_time - start_time))
+        last_time = curr_time
     }
     sc.stop()
   }
@@ -117,8 +124,25 @@ object DemoSparkJob extends Serializable {
     sc.stop()
   }
 
-  def median_hash_priv() : Unit = {
-    val query_name = "Median Hash Private"
+  def long_median_hash_priv() : Unit = {
+    for (i <- 1 to 1000) {
+      val query_name = "Median Hash Private " + i
+      val sc = new PrivateSparkContext(query_name)
+      val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv", true)
+      val hash_width = 1000000
+      val hashed_rdd = rdd.map(x => {
+        val result = math.abs(x.hashCode) % hash_width
+        result.toDouble
+      })
+
+      val median_hash = hashed_rdd.median()
+      println("median_hash_results, " + median_hash)
+      sc.stop()
+    }
+  }
+
+  def median_hash_priv(i : Int) : Unit = {
+    val query_name = "Median Hash Private " + i
     val sc = new PrivateSparkContext(query_name)
     val rdd = sc.getSarRDD("hdfs:///datasets/aol/aol_dataset.csv", true)
 
@@ -129,7 +153,7 @@ object DemoSparkJob extends Serializable {
     })
 
     val median_hash = hashed_rdd.median()
-    println("Median Private: " + median_hash)
+    println("median_hash_results, " + median_hash)
 
     sc.stop()
   }
@@ -241,11 +265,9 @@ object DemoSparkJob extends Serializable {
     val movie_ids = 1 to range
 
     val grouped = split_rdd.setKeys(movie_ids).setRangeForKeys(movie_ids, new Range(0, 5))
-    val sums = grouped.kSum()
-    val counts = grouped.kCount()
+    val avgs = grouped.kAvg()
 
-    sums.foreach(x => println(x._1 + ", sum, " + x._2))
-    counts.foreach(x => println(x._1 + ", count, " + x._2))
+    avgs.foreach(x => println(x._1 + ", avg, " + x._2))
 
     sc.stop()
 
