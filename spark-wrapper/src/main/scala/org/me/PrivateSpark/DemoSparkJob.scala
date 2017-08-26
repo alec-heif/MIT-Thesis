@@ -1,12 +1,97 @@
 package org.me.PrivateSpark
 
 import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.rdd.{PairRDDFunctions, RDD}
 import org.me.PrivateSpark.api.{SAR_RDD, Lap_RDD, PrivateSparkContext, Range}
 
 object DemoSparkJob extends Serializable {
 
   def main(args: Array[String]): Unit = {
-    long_median_hash_priv()
+    for(i <- 1 to 5) {
+      average_netflix_rating_nonprivate(i)
+    }
+    for(i <- 1 to 5) {
+      average_netflix_rating_cached_nonprivate(i)
+    }
+    for(i <- 1 to 5) {
+      average_netflix_rating_giant_cached_nonprivate(i)
+    }
+    for(i <- 1 to 5) {
+      many_outputs_nonprivate(i)
+    }
+  }
+
+  def many_outputs_nonprivate(i : Int) : Unit = {
+    // Movie_ID, User_ID, Rating, YYYY-MM-DD
+    val query_name = "Many Outputs " + i
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+    val rdd = sc.textFile("hdfs:///datasets/netflix/large/result_all.csv")
+
+    val split_rdd = rdd.map(x => x.split(","))
+    val key_rdd = split_rdd.map({case line => line(0).toInt->line(2).toDouble})
+    val sums = key_rdd.reduceByKey(_ + _).collectAsMap()
+    val counts = key_rdd.map(x => (x._1, 1.0)).reduceByKey(_ + _).collectAsMap()
+
+    val movie_ids = 1 to 1000
+
+    for (id <- movie_ids) {
+      println(id + ", " + sums(i) / counts(i))
+    }
+
+    sc.stop()
+
+  }
+  def average_netflix_rating_giant_cached_nonprivate(i : Int) : Unit = {
+    val query_name = "Average Rating Giant Cached: " + i
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+    val rdd = sc.textFile("hdfs:///datasets/netflix/giant/result_giant.csv")
+
+    val start_time = System.currentTimeMillis()
+    var last_time = start_time
+
+    rdd.cache()
+
+    for (j <- 1 to 10) {
+      val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble)
+      val avg = ratings.mean()
+      val curr_time = System.currentTimeMillis()
+      println("Spark Core_giant, " + i + ", " + j + ", " + ((curr_time - last_time) / 1000).toInt)
+      last_time = curr_time
+    }
+    sc.stop()
+  }
+
+  def average_netflix_rating_cached_nonprivate(i : Int) : Unit = {
+    val query_name = "Average Rating Cached: " + i
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+    val rdd = sc.textFile("hdfs:///datasets/netflix/large/result_all.csv")
+
+    val start_time = System.currentTimeMillis()
+    var last_time = start_time
+
+    rdd.cache()
+
+    for (j <- 1 to 10) {
+      val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble)
+      val avg = ratings.mean()
+      val curr_time = System.currentTimeMillis()
+      println("Spark Core_small, " + i + ", " + j + ", " + ((curr_time - last_time) / 1000).toInt)
+      last_time = curr_time
+    }
+    sc.stop()
+  }
+
+  def average_netflix_rating_nonprivate(i : Int) : Unit = {
+    val query_name = "Average Rating: " + i
+
+    val sc = new SparkContext(new SparkConf().setAppName(query_name))
+    val rdd = sc.textFile("hdfs:///datasets/netflix/large/result_all.csv")
+
+    val ratings = rdd.map(x => x.split(",")).map(x => x(2).toDouble)
+    val avg = ratings.mean()
+    println("Spark Core, " + i + ", ")
+
+    sc.stop()
   }
 
   def average_netflix_rating_giant_cached(i : Int) : Unit = {
